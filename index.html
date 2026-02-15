@@ -1060,16 +1060,16 @@
         let isFirebaseConnected = true;
         let deferredPrompt;
 
-        // ==================== ЛОКАЛЬНЫЕ ДАННЫЕ ====================
-        let products = JSON.parse(localStorage.getItem('mobile_products')) || [];
-        let sales = JSON.parse(localStorage.getItem('mobile_sales')) || [];
-        let clients = JSON.parse(localStorage.getItem('mobile_clients')) || [];
-        let expenses = JSON.parse(localStorage.getItem('mobile_expenses')) || [];
+        // ==================== ТОЛЬКО FIREBASE - БЕЗ LOCALSTORAGE ====================
+        let products = [];
+        let sales = [];
+        let clients = [];
+        let expenses = [];
         
-        let nextProductId = parseInt(localStorage.getItem('mobile_nextProductId')) || 1;
-        let nextSaleId = parseInt(localStorage.getItem('mobile_nextSaleId')) || 1;
-        let nextClientId = parseInt(localStorage.getItem('mobile_nextClientId')) || 1;
-        let nextExpenseId = parseInt(localStorage.getItem('mobile_nextExpenseId')) || 1;
+        let nextProductId = 1;
+        let nextSaleId = 1;
+        let nextClientId = 1;
+        let nextExpenseId = 1;
         let saleItems = [];
         let currentHistoryFilter = 'all';
 
@@ -1107,7 +1107,9 @@
                 db = firebase.firestore();
                 
                 try {
-                    await db.enablePersistence();
+                    await db.enablePersistence({
+                        synchronizeTabs: true
+                    });
                     console.log('Offline persistence enabled');
                 } catch (err) {
                     console.warn('Persistence error:', err);
@@ -1119,60 +1121,72 @@
 
                 isFirebaseConnected = true;
                 document.getElementById('firebaseStatus').innerHTML = '✅ Онлайн';
-                await loadFromFirebase();
+                
+                await loadAllData();
                 return true;
             } catch (error) {
                 console.error('Firebase init error:', error);
                 isFirebaseConnected = false;
                 document.getElementById('firebaseStatus').innerHTML = '❌ Оффлайн';
                 document.getElementById('offlineIndicator').classList.add('show');
+                
+                // Загружаем из кэша Firebase если есть
+                await loadAllData();
                 return false;
             }
         }
 
-        async function loadFromFirebase() {
-            if (!db || !isFirebaseConnected) return;
+        async function loadAllData() {
+            if (!db) return;
+            
             try {
+                // Загружаем продукты
                 const productsSnap = await db.collection('products').get();
+                products = [];
                 productsSnap.forEach(doc => {
-                    const exists = products.find(p => p.firebaseId === doc.id);
-                    if (!exists) products.push({ ...doc.data(), firebaseId: doc.id });
+                    products.push({ ...doc.data(), firebaseId: doc.id });
                 });
                 
+                // Загружаем клиентов
                 const clientsSnap = await db.collection('clients').get();
+                clients = [];
                 clientsSnap.forEach(doc => {
-                    const exists = clients.find(c => c.firebaseId === doc.id);
-                    if (!exists) clients.push({ ...doc.data(), firebaseId: doc.id });
+                    clients.push({ ...doc.data(), firebaseId: doc.id });
                 });
                 
-                const salesSnap = await db.collection('sales').orderBy('date_time', 'desc').limit(50).get();
+                // Загружаем продажи
+                const salesSnap = await db.collection('sales').orderBy('date_time', 'desc').get();
+                sales = [];
                 salesSnap.forEach(doc => {
-                    const exists = sales.find(s => s.firebaseId === doc.id);
-                    if (!exists) sales.push({ ...doc.data(), firebaseId: doc.id });
+                    sales.push({ ...doc.data(), firebaseId: doc.id });
                 });
                 
-                const expensesSnap = await db.collection('expenses').orderBy('date', 'desc').limit(50).get();
+                // Загружаем расходы
+                const expensesSnap = await db.collection('expenses').orderBy('date', 'desc').get();
+                expenses = [];
                 expensesSnap.forEach(doc => {
-                    const exists = expenses.find(e => e.firebaseId === doc.id);
-                    if (!exists) expenses.push({ ...doc.data(), firebaseId: doc.id });
+                    expenses.push({ ...doc.data(), firebaseId: doc.id });
                 });
                 
-                saveData();
+                // Обновляем nextId
+                if (products.length > 0) {
+                    nextProductId = Math.max(...products.map(p => p.id || 0)) + 1;
+                }
+                if (clients.length > 0) {
+                    nextClientId = Math.max(...clients.map(c => c.id || 0)) + 1;
+                }
+                if (sales.length > 0) {
+                    nextSaleId = Math.max(...sales.map(s => s.id || 0)) + 1;
+                }
+                if (expenses.length > 0) {
+                    nextExpenseId = Math.max(...expenses.map(e => e.id || 0)) + 1;
+                }
+                
+                renderAll();
+                
             } catch (e) {
                 console.error('Firebase load error:', e);
             }
-        }
-
-        // ==================== СОХРАНЕНИЕ ====================
-        function saveData() {
-            localStorage.setItem('mobile_products', JSON.stringify(products));
-            localStorage.setItem('mobile_sales', JSON.stringify(sales));
-            localStorage.setItem('mobile_clients', JSON.stringify(clients));
-            localStorage.setItem('mobile_expenses', JSON.stringify(expenses));
-            localStorage.setItem('mobile_nextProductId', nextProductId);
-            localStorage.setItem('mobile_nextSaleId', nextSaleId);
-            localStorage.setItem('mobile_nextClientId', nextClientId);
-            localStorage.setItem('mobile_nextExpenseId', nextExpenseId);
         }
 
         // ==================== РАСХОДЫ ====================
@@ -1193,7 +1207,7 @@
             document.getElementById('expenseDescription').value = '';
         }
 
-        function saveMobileExpense() {
+        async function saveMobileExpense() {
             const name = document.getElementById('expenseName').value.trim();
             const category = document.getElementById('expenseCategory').value;
             const amount = parseFloat(document.getElementById('expenseAmount').value);
@@ -1215,15 +1229,703 @@
                 created_at: new Date().toISOString()
             };
             
+            if (db && isFirebaseConnected) {
+                try {
+                    const docRef = await db.collection('expenses').add(expense);
+                    expense.firebaseId = docRef.id;
+                } catch (e) {
+                    console.error('Firebase save error:', e);
+                    showMobileAlert('❌ Ошибка сохранения в Firebase', 'error');
+                    return;
+                }
+            }
+            
             expenses.push(expense);
-            saveData();
             
             closeExpenseModal();
-            
-            renderMobileHome();
-            renderMobileExpenses();
+            renderAll();
             
             showMobileAlert('✅ Расход добавлен', 'success');
+        }
+
+        async function deleteMobileExpense(id) {
+            if (!confirm('Удалить расход?')) return;
+            
+            const expense = expenses.find(e => e.id === id);
+            
+            if (db && isFirebaseConnected && expense?.firebaseId) {
+                try {
+                    await db.collection('expenses').doc(expense.firebaseId).delete();
+                } catch (e) {
+                    console.error('Firebase delete error:', e);
+                    showMobileAlert('❌ Ошибка удаления из Firebase', 'error');
+                    return;
+                }
+            }
+            
+            expenses = expenses.filter(e => e.id !== id);
+            renderAll();
+        }
+
+        // ==================== ТОВАРЫ ====================
+        async function addMobileProduct() {
+            const name = document.getElementById('mobileProductName').value.trim();
+            const purchase = parseFloat(document.getElementById('mobileProductPurchase').value) || 0;
+            const price = parseFloat(document.getElementById('mobileProductPrice').value);
+            const qty = parseInt(document.getElementById('mobileProductQty').value);
+            
+            if (!name || !price || !qty) {
+                showMobileAlert('❌ Заполните все поля', 'error');
+                return;
+            }
+            
+            const existingProduct = products.find(p => p.name.toLowerCase() === name.toLowerCase());
+            
+            if (existingProduct) {
+                existingProduct.qty_in_stock = (existingProduct.qty_in_stock || 0) + qty;
+                existingProduct.purchase_price = purchase;
+                existingProduct.sale_price = price;
+                existingProduct.profit_per_unit = price - purchase;
+                existingProduct.updated_at = new Date().toISOString();
+                
+                if (db && isFirebaseConnected && existingProduct.firebaseId) {
+                    try {
+                        await db.collection('products').doc(existingProduct.firebaseId).update(existingProduct);
+                    } catch (e) {
+                        console.error('Firebase update error:', e);
+                    }
+                }
+                
+                showMobileAlert(`✅ К товару "${name}" добавлено +${qty} шт`, 'success');
+            } else {
+                const product = {
+                    id: nextProductId++,
+                    name: name,
+                    purchase_price: purchase,
+                    sale_price: price,
+                    qty_in_stock: qty,
+                    profit_per_unit: price - purchase,
+                    created_at: new Date().toISOString()
+                };
+                
+                if (db && isFirebaseConnected) {
+                    try {
+                        const docRef = await db.collection('products').add(product);
+                        product.firebaseId = docRef.id;
+                    } catch (e) {
+                        console.error('Firebase save error:', e);
+                    }
+                }
+                
+                products.push(product);
+                showMobileAlert('✅ Товар добавлен', 'success');
+            }
+            
+            document.getElementById('mobileProductName').value = '';
+            document.getElementById('mobileProductPurchase').value = '';
+            document.getElementById('mobileProductPrice').value = '';
+            document.getElementById('mobileProductQty').value = '';
+            
+            renderAll();
+        }
+
+        async function deleteMobileProduct(id) {
+            if (!confirm('Удалить товар?')) return;
+            
+            const product = products.find(p => p.id === id);
+            
+            if (db && isFirebaseConnected && product?.firebaseId) {
+                try {
+                    await db.collection('products').doc(product.firebaseId).delete();
+                } catch (e) {
+                    console.error('Firebase delete error:', e);
+                    showMobileAlert('❌ Ошибка удаления из Firebase', 'error');
+                    return;
+                }
+            }
+            
+            products = products.filter(p => p.id !== id);
+            renderAll();
+        }
+
+        // ==================== КЛИЕНТЫ ====================
+        async function addMobileClient() {
+            const name = document.getElementById('mobileClientName').value.trim();
+            const phone = document.getElementById('mobileClientPhone').value.trim();
+            
+            if (!name) {
+                showMobileAlert('❌ Введите имя клиента', 'error');
+                return;
+            }
+            
+            const client = {
+                id: nextClientId++,
+                name: name,
+                phone: phone,
+                total_purchases: 0,
+                total_debt: 0,
+                created_at: new Date().toISOString()
+            };
+            
+            if (db && isFirebaseConnected) {
+                try {
+                    const docRef = await db.collection('clients').add(client);
+                    client.firebaseId = docRef.id;
+                } catch (e) {
+                    console.error('Firebase save error:', e);
+                    showMobileAlert('❌ Ошибка сохранения в Firebase', 'error');
+                    return;
+                }
+            }
+            
+            clients.push(client);
+            
+            document.getElementById('mobileClientName').value = '';
+            document.getElementById('mobileClientPhone').value = '';
+            
+            renderAll();
+            showMobileAlert('✅ Клиент добавлен', 'success');
+        }
+
+        async function deleteMobileClient(id) {
+            if (!confirm('⚠️ Вы уверены, что хотите удалить клиента?\nВсе связанные продажи и долги будут отвязаны!')) {
+                return;
+            }
+            
+            const client = clients.find(c => c.id === id);
+            
+            if (db && isFirebaseConnected && client?.firebaseId) {
+                try {
+                    await db.collection('clients').doc(client.firebaseId).delete();
+                } catch (e) {
+                    console.error('Firebase delete error:', e);
+                    showMobileAlert('❌ Ошибка удаления из Firebase', 'error');
+                    return;
+                }
+            }
+            
+            clients = clients.filter(c => c.id !== id);
+            
+            renderAll();
+            showMobileAlert('✅ Клиент удален', 'success');
+        }
+
+        // ==================== ПРОДАЖИ ====================
+// ==================== ПРОДАЖИ ====================
+async function saveMobileSale() {
+    const clientId = document.getElementById('mobileSaleClient').value;
+    const paymentStatus = document.querySelector('input[name="mobilePaymentStatus"]:checked')?.value || 'cash';
+    
+    if (!clientId) { showMobileAlert('❌ Выберите клиента', 'error'); return; }
+    if (saleItems.length === 0) { showMobileAlert('❌ Добавьте товары', 'error'); return; }
+    
+    // Проверяем наличие товаров
+    for (let item of saleItems) {
+        const product = products.find(p => p.id === item.product_id);
+        if (!product) { showMobileAlert('❌ Товар не найден', 'error'); return; }
+        if (item.qty > (product.qty_in_stock || 0)) {
+            showMobileAlert(`❌ Недостаточно товара ${product.name}. Доступно: ${product.qty_in_stock}`, 'error');
+            return;
+        }
+    }
+    
+    const items = saleItems.map(item => {
+        const product = products.find(p => p.id === item.product_id);
+        return {
+            product_id: item.product_id,
+            product_name: product.name,
+            qty_sold: item.qty,
+            sale_price_at_sale: product.sale_price,
+            purchase_price_at_sale: product.purchase_price || 0,
+            line_sum: (product.sale_price || 0) * item.qty,
+            line_cost: (product.purchase_price || 0) * item.qty,
+            line_profit: ((product.sale_price || 0) - (product.purchase_price || 0)) * item.qty
+        };
+    });
+    
+    const total_sum = items.reduce((sum, i) => sum + i.line_sum, 0);
+    const total_cost = items.reduce((sum, i) => sum + i.line_cost, 0);
+    const total_profit = total_sum - total_cost;
+    
+    const sale = {
+        id: nextSaleId++,
+        date_time: new Date().toISOString(),
+        client_id: parseInt(clientId),
+        payment_status: paymentStatus,
+        items: items,
+        total_sum: total_sum,
+        total_cost: total_cost,
+        total_profit: total_profit,
+        payment_history: paymentStatus === 'cash' ? [{
+            id: Date.now(),
+            amount: total_sum,
+            date: new Date().toISOString()
+        }] : []
+    };
+    
+    try {
+        // Сохраняем продажу в Firebase
+        if (db && isFirebaseConnected) {
+            try {
+                const docRef = await db.collection('sales').add(sale);
+                sale.firebaseId = docRef.id;
+                console.log('Sale saved to Firebase with ID:', docRef.id);
+            } catch (e) {
+                console.error('Firebase save sale error:', e);
+                showMobileAlert('❌ Ошибка сохранения продажи', 'error');
+                return;
+            }
+        }
+        
+        sales.push(sale);
+        
+        // Обновляем остатки товаров
+        for (let item of saleItems) {
+            const product = products.find(p => p.id === item.product_id);
+            if (product) {
+                product.qty_in_stock = (product.qty_in_stock || 0) - item.qty;
+                
+                if (db && isFirebaseConnected && product.firebaseId) {
+                    try {
+                        await db.collection('products').doc(product.firebaseId).update({
+                            qty_in_stock: product.qty_in_stock
+                        });
+                        console.log(`Product ${product.name} updated, new qty: ${product.qty_in_stock}`);
+                    } catch (e) {
+                        console.error('Firebase update product error:', e);
+                    }
+                }
+            }
+        }
+        
+        // Обновляем клиента
+        const client = clients.find(c => c.id == clientId);
+        if (client) {
+            client.total_purchases = (client.total_purchases || 0) + total_sum;
+            if (paymentStatus === 'debt') {
+                client.total_debt = (client.total_debt || 0) + total_sum;
+            }
+            
+            if (db && isFirebaseConnected && client.firebaseId) {
+                try {
+                    await db.collection('clients').doc(client.firebaseId).update({
+                        total_purchases: client.total_purchases,
+                        total_debt: client.total_debt
+                    });
+                } catch (e) {
+                    console.error('Firebase update client error:', e);
+                }
+            }
+        }
+        
+        // Очищаем корзину
+        saleItems = [];
+        
+        // Перерисовываем все
+        renderAll();
+        showMobileAlert('✅ Продажа сохранена!', 'success');
+        
+        // Переключаемся на историю
+        switchMobileTab('history');
+        
+    } catch (error) {
+        console.error('Error saving sale:', error);
+        showMobileAlert('❌ Ошибка при сохранении', 'error');
+    }
+}
+
+        // ==================== ОПЛАТА ДОЛГА ====================
+        async function processPayment(saleId) {
+            const sale = sales.find(s => s.id === saleId);
+            const amount = parseFloat(document.getElementById('paymentAmount').value);
+            
+            if (!amount || amount <= 0) { showMobileAlert('❌ Введите сумму', 'error'); return; }
+            if (!sale.payment_history) sale.payment_history = [];
+            
+            const paidAmount = sale.payment_history.reduce((sum, p) => sum + (p.amount || 0), 0);
+            const remaining = (sale.total_sum || 0) - paidAmount;
+            if (amount > remaining) { showMobileAlert('❌ Сумма превышает остаток долга', 'error'); return; }
+            
+            sale.payment_history.push({ 
+                id: Date.now(), 
+                amount: amount, 
+                date: new Date().toISOString() 
+            });
+            
+            const newPaid = paidAmount + amount;
+            sale.payment_status = Math.abs(newPaid - (sale.total_sum || 0)) < 0.01 ? 'cash' : 'partial';
+            
+            const client = clients.find(c => c.id == sale.client_id);
+            if (client) {
+                client.total_debt = (client.total_debt || 0) - amount;
+                
+                if (db && isFirebaseConnected && client.firebaseId) {
+                    try {
+                        await db.collection('clients').doc(client.firebaseId).update(client);
+                    } catch (e) {
+                        console.error('Firebase update error:', e);
+                    }
+                }
+            }
+            
+            if (db && isFirebaseConnected && sale.firebaseId) {
+                try {
+                    await db.collection('sales').doc(sale.firebaseId).update(sale);
+                } catch (e) {
+                    console.error('Firebase update error:', e);
+                }
+            }
+            
+            closeDebtModal();
+            renderAll();
+            showMobileAlert(`✅ Оплачено ${amount.toFixed(0)} сом`, 'success');
+        }
+
+        // ==================== ОЧИСТКА ИСТОРИИ ПРОДАЖ ====================
+        async function clearSalesHistory() {
+            if (!confirm('⚠️ Вы уверены, что хотите очистить ВСЮ историю продаж?\nТовары будут возвращены на склад, долги клиентов будут сброшены.\nЭто действие нельзя отменить!')) {
+                return;
+            }
+            
+            // Возвращаем товары на склад
+            for (let sale of sales) {
+                if (sale.items) {
+                    for (let item of sale.items) {
+                        const product = products.find(p => p.id == item.product_id);
+                        if (product) {
+                            product.qty_in_stock = (product.qty_in_stock || 0) + (item.qty_sold || 0);
+                            
+                            if (db && isFirebaseConnected && product.firebaseId) {
+                                try {
+                                    await db.collection('products').doc(product.firebaseId).update(product);
+                                } catch (e) {
+                                    console.error('Firebase update error:', e);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Обнуляем долги клиентов
+            for (let client of clients) {
+                client.total_purchases = 0;
+                client.total_debt = 0;
+                
+                if (db && isFirebaseConnected && client.firebaseId) {
+                    try {
+                        await db.collection('clients').doc(client.firebaseId).update(client);
+                    } catch (e) {
+                        console.error('Firebase update error:', e);
+                    }
+                }
+            }
+            
+            // Удаляем все продажи из Firebase
+            if (db && isFirebaseConnected) {
+                try {
+                    const salesSnap = await db.collection('sales').get();
+                    salesSnap.forEach(async (doc) => {
+                        await db.collection('sales').doc(doc.id).delete();
+                    });
+                } catch (e) {
+                    console.error('Firebase delete error:', e);
+                }
+            }
+            
+            sales = [];
+            nextSaleId = 1;
+            
+            renderAll();
+            showMobileAlert('✅ История продаж очищена', 'success');
+        }
+
+        // ==================== ОЧИСТКА ВСЕХ ДАННЫХ ====================
+        async function clearAllData() {
+            if (!confirm('⚠️ Вы уверены, что хотите удалить ВСЕ данные?\nЭто действие нельзя отменить!')) return;
+            
+            if (db && isFirebaseConnected) {
+                try {
+                    const collections = ['products', 'clients', 'sales', 'expenses'];
+                    for (const col of collections) {
+                        const snapshot = await db.collection(col).get();
+                        snapshot.forEach(async (doc) => {
+                            await db.collection(col).doc(doc.id).delete();
+                        });
+                    }
+                } catch (e) {
+                    console.error('Firebase clear error:', e);
+                }
+            }
+            
+            products = [];
+            sales = [];
+            clients = [];
+            expenses = [];
+            saleItems = [];
+            
+            nextProductId = 1;
+            nextSaleId = 1;
+            nextClientId = 1;
+            nextExpenseId = 1;
+            
+            renderAll();
+            showMobileAlert('✅ Все данные удалены', 'success');
+        }
+
+        // ==================== ЭКСПОРТ ДАННЫХ ====================
+        function exportData() {
+            const data = { 
+                products, 
+                sales, 
+                clients, 
+                expenses, 
+                date: new Date().toISOString() 
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `shop-backup-${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showMobileAlert('✅ Данные экспортированы', 'success');
+        }
+
+        // ==================== РЕНДЕРИНГ ВСЕГО ====================
+        function renderAll() {
+            renderMobileHome();
+            renderMobileProducts();
+            renderMobileProductsStats();
+            renderMobileClients();
+            renderMobileClientSelect();
+            renderMobileExpenses();
+            renderMobileFullHistory();
+            renderMobileSalesStats();
+            renderMobileRecentOperations();
+        }
+
+        // ==================== ФУНКЦИИ РЕНДЕРИНГА (без изменений) ====================
+        function renderMobileHome() {
+            const totalProducts = products.length;
+            const totalSales = sales.length;
+            const totalRevenue = sales.reduce((sum, s) => sum + (s.total_sum || 0), 0);
+            const totalProfit = sales.reduce((sum, s) => sum + (s.total_profit || 0), 0);
+            const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+            const netProfit = totalProfit - totalExpenses;
+            
+            const totalDebt = sales.reduce((sum, s) => {
+                if (s.payment_status === 'debt' || s.payment_status === 'partial') {
+                    const paid = s.payment_history ? s.payment_history.reduce((p, a) => p + (a.amount || 0), 0) : 0;
+                    return sum + ((s.total_sum || 0) - paid);
+                }
+                return sum;
+            }, 0);
+            
+            document.getElementById('mobileTotalProducts').innerHTML = totalProducts;
+            document.getElementById('mobileTotalSales').innerHTML = totalSales;
+            document.getElementById('mobileTotalRevenue').innerHTML = totalRevenue.toFixed(0);
+            document.getElementById('mobileTotalProfit').innerHTML = totalProfit.toFixed(0);
+            document.getElementById('mobileNetProfit').innerHTML = netProfit.toFixed(0) + ' сом';
+            document.getElementById('mobileTotalExpenses').innerHTML = totalExpenses.toFixed(0) + ' сом';
+            document.getElementById('mobileTotalDebt').innerHTML = totalDebt.toFixed(0) + ' сом';
+            
+            renderMobileRecentOperations();
+            renderExpenseCategories();
+            renderMobileDebts();
+        }
+
+        function renderMobileDebts() {
+            const container = document.getElementById('mobileDebts');
+            if (!container) return;
+            
+            const debtors = [];
+            clients.forEach(client => {
+                const clientDebt = sales
+                    .filter(s => s.client_id == client.id && (s.payment_status === 'debt' || s.payment_status === 'partial'))
+                    .reduce((sum, s) => {
+                        const paid = s.payment_history ? s.payment_history.reduce((p, a) => p + (a.amount || 0), 0) : 0;
+                        return sum + ((s.total_sum || 0) - paid);
+                    }, 0);
+                
+                if (clientDebt > 0) {
+                    debtors.push({ ...client, debt: clientDebt });
+                }
+            });
+            
+            if (debtors.length === 0) {
+                container.innerHTML = '<p style="color: #6c757d; text-align: center; font-size: 11px;">Нет долгов</p>';
+                return;
+            }
+            
+            let debtsHtml = '';
+            debtors.slice(0, 3).forEach(d => {
+                debtsHtml += `
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f1f1; font-size: 12px;">
+                        <div>
+                            <strong>${d.name}</strong>
+                            <div style="font-size: 9px;">${d.phone || 'Нет телефона'}</div>
+                        </div>
+                        <div style="color: #dc3545; font-weight: 700;">${d.debt.toFixed(0)} сом</div>
+                    </div>
+                `;
+            });
+            
+            if (debtors.length > 3) {
+                debtsHtml += `<div style="text-align: center; margin-top: 8px; color: #667eea; font-size: 11px;" onclick="switchMobileTab('history'); setTimeout(() => filterHistory('debt'), 100);">Ещё ${debtors.length - 3} должников →</div>`;
+            }
+            
+            container.innerHTML = debtsHtml;
+        }
+
+        function renderMobileProducts() {
+            const container = document.getElementById('mobileProductsList');
+            if (!container) return;
+            
+            if (products.length === 0) {
+                container.innerHTML = '<div class="mobile-card" style="text-align: center;"><span style="font-size: 32px;">📦</span><p style="font-size: 12px;">Нет товаров</p></div>';
+                return;
+            }
+            
+            let html = '';
+            products.forEach(p => {
+                html += `
+                    <div class="mobile-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="margin-bottom: 4px; font-size: 15px;">${p.name}</h3>
+                                <div style="display: flex; gap: 10px; font-size: 11px;">
+                                    <span>💰 ${(p.sale_price || 0).toFixed(0)} сом</span>
+                                    <span>📦 ${p.qty_in_stock || 0} шт</span>
+                                    <span style="color: #28a745;">+${(p.profit_per_unit || 0).toFixed(0)} сом</span>
+                                </div>
+                            </div>
+                            <button class="btn-remove" onclick="deleteMobileProduct(${p.id})" style="width: 32px; height: 32px;">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function renderMobileProductsStats() {
+            const container = document.getElementById('mobileProductsStats');
+            if (!container) return;
+            
+            const totalItems = products.reduce((sum, p) => sum + (p.qty_in_stock || 0), 0);
+            const totalValue = products.reduce((sum, p) => sum + ((p.sale_price || 0) * (p.qty_in_stock || 0)), 0);
+            const totalCost = products.reduce((sum, p) => sum + ((p.purchase_price || 0) * (p.qty_in_stock || 0)), 0);
+            const potentialProfit = totalValue - totalCost;
+            const avgPrice = totalItems > 0 ? totalValue / totalItems : 0;
+            const avgMargin = totalValue > 0 ? (potentialProfit / totalValue * 100) : 0;
+            
+            const lowStock = products.filter(p => (p.qty_in_stock || 0) < 5).length;
+            const outOfStock = products.filter(p => (p.qty_in_stock || 0) === 0).length;
+            
+            const statsHTML = `
+                <div class="totals-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h3 style="color: white;">📊 Итоги товаров</h3>
+                        <span style="background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 20px; font-size: 10px;">
+                            ${products.length} видов
+                        </span>
+                    </div>
+                    
+                    <div class="totals-grid">
+                        <div class="totals-item">
+                            <div class="totals-label">📦 Всего</div>
+                            <div class="totals-value">${totalItems} шт</div>
+                        </div>
+                        <div class="totals-item">
+                            <div class="totals-label">💰 Стоимость</div>
+                            <div class="totals-value">${totalValue.toFixed(0)}</div>
+                        </div>
+                        <div class="totals-item">
+                            <div class="totals-label">📉 Себест.</div>
+                            <div class="totals-value">${totalCost.toFixed(0)}</div>
+                        </div>
+                        <div class="totals-item">
+                            <div class="totals-label">📈 Прибыль</div>
+                            <div class="totals-value profit-positive">+${potentialProfit.toFixed(0)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-divider"></div>
+                    
+                    <div class="compact-stat-row">
+                        <span>🏷️ Сред. цена:</span>
+                        <span style="font-weight: 600;">${avgPrice.toFixed(0)} сом</span>
+                    </div>
+                    <div class="compact-stat-row">
+                        <span>📊 Маржа:</span>
+                        <span style="font-weight: 600; color: #a5d6a5;">${avgMargin.toFixed(1)}%</span>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <div style="flex: 1; background: rgba(255,255,255,0.08); padding: 6px; border-radius: 10px; text-align: center;">
+                            <span style="font-size: 8px; opacity: 0.9;">⚠️ Малый остаток</span>
+                            <div style="font-size: 14px; font-weight: 700; color: #ffc107;">${lowStock}</div>
+                        </div>
+                        <div style="flex: 1; background: rgba(255,255,255,0.08); padding: 6px; border-radius: 10px; text-align: center;">
+                            <span style="font-size: 8px; opacity: 0.9;">❌ Нет в наличии</span>
+                            <div style="font-size: 14px; font-weight: 700; color: #dc3545;">${outOfStock}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = statsHTML;
+        }
+
+        function renderMobileClients() {
+            const container = document.getElementById('mobileClientsList');
+            if (!container) return;
+            
+            if (clients.length === 0) {
+                container.innerHTML = '<div class="mobile-card" style="text-align: center;"><span style="font-size: 32px;">👥</span><p style="font-size: 12px;">Нет клиентов</p></div>';
+                return;
+            }
+            
+            let html = '';
+            clients.forEach(c => {
+                const clientDebt = sales
+                    .filter(s => s.client_id == c.id && (s.payment_status === 'debt' || s.payment_status === 'partial'))
+                    .reduce((sum, s) => {
+                        const paid = s.payment_history ? s.payment_history.reduce((p, a) => p + (a.amount || 0), 0) : 0;
+                        return sum + ((s.total_sum || 0) - paid);
+                    }, 0);
+                
+                html += `
+                    <div class="client-card">
+                        <div class="client-info">
+                            <div class="client-name">${c.name}</div>
+                            <div style="margin-bottom: 6px; font-size: 11px;">📞 ${c.phone || 'Не указан'}</div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span>🛒 ${(c.total_purchases || 0).toFixed(0)} сом</span>
+                                ${clientDebt > 0 ? `<span class="client-debt">💰 Долг: ${clientDebt.toFixed(0)} сом</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="client-actions">
+                            <button class="btn-remove" onclick="deleteMobileClient(${c.id})" style="width: 32px; height: 32px; background: #dc3545;" title="Удалить клиента">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function renderMobileClientSelect() {
+            const select = document.getElementById('mobileSaleClient');
+            if (!select) return;
+            
+            let html = '<option value="">-- Выберите клиента --</option>';
+            clients.forEach(c => {
+                html += `<option value="${c.id}">${c.name}</option>`;
+            });
+            select.innerHTML = html;
         }
 
         function renderMobileExpenses() {
@@ -1269,15 +1971,6 @@
             document.getElementById('mobileTotalExpenses').innerHTML = totalExpenses.toFixed(0) + ' сом';
         }
 
-        function deleteMobileExpense(id) {
-            if (!confirm('Удалить расход?')) return;
-            expenses = expenses.filter(e => e.id !== id);
-            saveData();
-            renderMobileExpenses();
-            renderMobileHome();
-        }
-
-        // ==================== КАТЕГОРИИ РАСХОДОВ ====================
         function renderExpenseCategories() {
             const container = document.getElementById('mobileExpenseCategories');
             if (!container) return;
@@ -1313,60 +2006,6 @@
                         <span class="category-icon">${icon}</span>
                         <span class="category-name">${cat.length > 10 ? cat.substring(0,8)+'…' : cat}</span>
                         <span class="category-amount">${amount.toFixed(0)} сом</span>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        // ==================== ИСТОРИЯ ПРОДАЖ ====================
-        function filterHistory(filter, element) {
-            currentHistoryFilter = filter;
-            
-            document.querySelectorAll('.filter-chip').forEach(chip => {
-                chip.classList.remove('active');
-            });
-            if (element) element.classList.add('active');
-            
-            renderMobileFullHistory();
-            renderMobileSalesStats();
-        }
-
-        function renderMobileRecentOperations() {
-            const container = document.getElementById('mobileRecentOperations');
-            if (!container) return;
-            
-            const recentSales = [...sales]
-                .sort((a,b) => new Date(b.date_time) - new Date(a.date_time))
-                .slice(0, 5);
-            
-            if (recentSales.length === 0) {
-                container.innerHTML = '<p style="color: #6c757d; text-align: center; padding: 8px; font-size: 11px;">Нет продаж</p>';
-                return;
-            }
-            
-            let html = '';
-            recentSales.forEach(sale => {
-                const client = findClientById(sale.client_id);
-                const clientName = client?.name || '👤 Клиент удален';
-                let statusIcon = '';
-                if (sale.payment_status === 'cash') statusIcon = '💰';
-                else if (sale.payment_status === 'debt') statusIcon = '📝';
-                else if (sale.payment_status === 'partial') statusIcon = '🔄';
-                
-                html += `
-                    <div class="history-item">
-                        <div class="history-left">
-                            <div class="history-icon" style="background: #28a74520; color: #28a745;">💰</div>
-                            <div class="history-details">
-                                <span class="history-title">Продажа #${sale.id}</span>
-                                <span class="history-subtitle">${clientName} · ${formatDate(sale.date_time)} ${statusIcon}</span>
-                            </div>
-                        </div>
-                        <div class="history-amount amount-positive">
-                            +${(sale.total_sum || 0).toFixed(0)} сом
-                        </div>
                     </div>
                 `;
             });
@@ -1444,77 +2083,6 @@
             container.innerHTML = html;
         }
 
-        // ==================== КОМПАКТНЫЕ ИТОГИ ТОВАРОВ ====================
-        function renderMobileProductsStats() {
-            const container = document.getElementById('mobileProductsStats');
-            if (!container) return;
-            
-            const totalItems = products.reduce((sum, p) => sum + (p.qty_in_stock || 0), 0);
-            const totalValue = products.reduce((sum, p) => sum + ((p.sale_price || 0) * (p.qty_in_stock || 0)), 0);
-            const totalCost = products.reduce((sum, p) => sum + ((p.purchase_price || 0) * (p.qty_in_stock || 0)), 0);
-            const potentialProfit = totalValue - totalCost;
-            const avgPrice = totalItems > 0 ? totalValue / totalItems : 0;
-            const avgMargin = totalValue > 0 ? (potentialProfit / totalValue * 100) : 0;
-            
-            const lowStock = products.filter(p => (p.qty_in_stock || 0) < 5).length;
-            const outOfStock = products.filter(p => (p.qty_in_stock || 0) === 0).length;
-            
-            const statsHTML = `
-                <div class="totals-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <h3 style="color: white;">📊 Итоги товаров</h3>
-                        <span style="background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 20px; font-size: 10px;">
-                            ${products.length} видов
-                        </span>
-                    </div>
-                    
-                    <div class="totals-grid">
-                        <div class="totals-item">
-                            <div class="totals-label">📦 Всего</div>
-                            <div class="totals-value">${totalItems} шт</div>
-                        </div>
-                        <div class="totals-item">
-                            <div class="totals-label">💰 Стоимость</div>
-                            <div class="totals-value">${totalValue.toFixed(0)}</div>
-                        </div>
-                        <div class="totals-item">
-                            <div class="totals-label">📉 Себест.</div>
-                            <div class="totals-value">${totalCost.toFixed(0)}</div>
-                        </div>
-                        <div class="totals-item">
-                            <div class="totals-label">📈 Прибыль</div>
-                            <div class="totals-value profit-positive">+${potentialProfit.toFixed(0)}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stats-divider"></div>
-                    
-                    <div class="compact-stat-row">
-                        <span>🏷️ Сред. цена:</span>
-                        <span style="font-weight: 600;">${avgPrice.toFixed(0)} сом</span>
-                    </div>
-                    <div class="compact-stat-row">
-                        <span>📊 Маржа:</span>
-                        <span style="font-weight: 600; color: #a5d6a5;">${avgMargin.toFixed(1)}%</span>
-                    </div>
-                    
-                    <div style="display: flex; gap: 8px; margin-top: 8px;">
-                        <div style="flex: 1; background: rgba(255,255,255,0.08); padding: 6px; border-radius: 10px; text-align: center;">
-                            <span style="font-size: 8px; opacity: 0.9;">⚠️ Малый остаток</span>
-                            <div style="font-size: 14px; font-weight: 700; color: #ffc107;">${lowStock}</div>
-                        </div>
-                        <div style="flex: 1; background: rgba(255,255,255,0.08); padding: 6px; border-radius: 10px; text-align: center;">
-                            <span style="font-size: 8px; opacity: 0.9;">❌ Нет в наличии</span>
-                            <div style="font-size: 14px; font-weight: 700; color: #dc3545;">${outOfStock}</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            container.innerHTML = statsHTML;
-        }
-
-        // ==================== КОМПАКТНЫЕ ИТОГИ ПРОДАЖ ====================
         function renderMobileSalesStats() {
             const container = document.getElementById('mobileSalesStats');
             if (!container) return;
@@ -1604,329 +2172,45 @@
             container.innerHTML = statsHTML;
         }
 
-        // ==================== ОЧИСТКА ИСТОРИИ ПРОДАЖ ====================
-        async function clearSalesHistory() {
-            if (!confirm('⚠️ Вы уверены, что хотите очистить ВСЮ историю продаж?\nТовары будут возвращены на склад, долги клиентов будут сброшены.\nЭто действие нельзя отменить!')) {
-                return;
-            }
-            
-            sales.forEach(sale => {
-                if (sale.items) {
-                    sale.items.forEach(item => {
-                        const product = products.find(p => p.id == item.product_id);
-                        if (product) {
-                            product.qty_in_stock = (product.qty_in_stock || 0) + (item.qty_sold || 0);
-                            product.updated_at = new Date().toISOString();
-                        }
-                    });
-                }
-            });
-            
-            clients.forEach(client => {
-                client.total_purchases = 0;
-                client.total_debt = 0;
-                client.updated_at = new Date().toISOString();
-            });
-            
-            sales = [];
-            nextSaleId = 1;
-            
-            saveData();
-            
-            renderMobileHome();
-            renderMobileProducts();
-            renderMobileProductsStats();
-            renderMobileClients();
-            renderMobileFullHistory();
-            renderMobileSalesStats();
-            renderMobileRecentOperations();
-            
-            showMobileAlert('✅ История продаж очищена', 'success');
-        }
-
-        // ==================== ГЛАВНАЯ ====================
-        function renderMobileHome() {
-            const totalProducts = products.length;
-            const totalSales = sales.length;
-            const totalRevenue = sales.reduce((sum, s) => sum + (s.total_sum || 0), 0);
-            const totalProfit = sales.reduce((sum, s) => sum + (s.total_profit || 0), 0);
-            const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-            const netProfit = totalProfit - totalExpenses;
-            
-            const totalDebt = sales.reduce((sum, s) => {
-                if (s.payment_status === 'debt' || s.payment_status === 'partial') {
-                    const paid = s.payment_history ? s.payment_history.reduce((p, a) => p + (a.amount || 0), 0) : 0;
-                    return sum + ((s.total_sum || 0) - paid);
-                }
-                return sum;
-            }, 0);
-            
-            document.getElementById('mobileTotalProducts').innerHTML = totalProducts;
-            document.getElementById('mobileTotalSales').innerHTML = totalSales;
-            document.getElementById('mobileTotalRevenue').innerHTML = totalRevenue.toFixed(0);
-            document.getElementById('mobileTotalProfit').innerHTML = totalProfit.toFixed(0);
-            document.getElementById('mobileNetProfit').innerHTML = netProfit.toFixed(0) + ' сом';
-            document.getElementById('mobileTotalExpenses').innerHTML = totalExpenses.toFixed(0) + ' сом';
-            document.getElementById('mobileTotalDebt').innerHTML = totalDebt.toFixed(0) + ' сом';
-            
-            renderMobileRecentOperations();
-            renderExpenseCategories();
-            renderMobileDebts();
-        }
-
-        function renderMobileDebts() {
-            const container = document.getElementById('mobileDebts');
+        function renderMobileRecentOperations() {
+            const container = document.getElementById('mobileRecentOperations');
             if (!container) return;
             
-            const debtors = [];
-            clients.forEach(client => {
-                const clientDebt = sales
-                    .filter(s => s.client_id == client.id && (s.payment_status === 'debt' || s.payment_status === 'partial'))
-                    .reduce((sum, s) => {
-                        const paid = s.payment_history ? s.payment_history.reduce((p, a) => p + (a.amount || 0), 0) : 0;
-                        return sum + ((s.total_sum || 0) - paid);
-                    }, 0);
-                
-                if (clientDebt > 0) {
-                    debtors.push({ ...client, debt: clientDebt });
-                }
-            });
+            const recentSales = [...sales]
+                .sort((a,b) => new Date(b.date_time) - new Date(a.date_time))
+                .slice(0, 5);
             
-            if (debtors.length === 0) {
-                container.innerHTML = '<p style="color: #6c757d; text-align: center; font-size: 11px;">Нет долгов</p>';
-                return;
-            }
-            
-            let debtsHtml = '';
-            debtors.slice(0, 3).forEach(d => {
-                debtsHtml += `
-                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f1f1; font-size: 12px;">
-                        <div>
-                            <strong>${d.name}</strong>
-                            <div style="font-size: 9px;">${d.phone || 'Нет телефона'}</div>
-                        </div>
-                        <div style="color: #dc3545; font-weight: 700;">${d.debt.toFixed(0)} сом</div>
-                    </div>
-                `;
-            });
-            
-            if (debtors.length > 3) {
-                debtsHtml += `<div style="text-align: center; margin-top: 8px; color: #667eea; font-size: 11px;" onclick="switchMobileTab('history'); setTimeout(() => filterHistory('debt'), 100);">Ещё ${debtors.length - 3} должников →</div>`;
-            }
-            
-            container.innerHTML = debtsHtml;
-        }
-
-        // ==================== ТОВАРЫ ====================
-        function addMobileProduct() {
-            const name = document.getElementById('mobileProductName').value.trim();
-            const purchase = parseFloat(document.getElementById('mobileProductPurchase').value) || 0;
-            const price = parseFloat(document.getElementById('mobileProductPrice').value);
-            const qty = parseInt(document.getElementById('mobileProductQty').value);
-            
-            if (!name || !price || !qty) {
-                showMobileAlert('❌ Заполните все поля', 'error');
-                return;
-            }
-            
-            const existingProduct = products.find(p => p.name.toLowerCase() === name.toLowerCase());
-            
-            if (existingProduct) {
-                existingProduct.qty_in_stock = (existingProduct.qty_in_stock || 0) + qty;
-                existingProduct.purchase_price = purchase;
-                existingProduct.sale_price = price;
-                existingProduct.profit_per_unit = price - purchase;
-                existingProduct.updated_at = new Date().toISOString();
-                saveData();
-                showMobileAlert(`✅ К товару "${name}" добавлено +${qty} шт`, 'success');
-            } else {
-                const product = {
-                    id: nextProductId++,
-                    name: name,
-                    purchase_price: purchase,
-                    sale_price: price,
-                    qty_in_stock: qty,
-                    profit_per_unit: price - purchase,
-                    created_at: new Date().toISOString()
-                };
-                products.push(product);
-                saveData();
-                showMobileAlert('✅ Товар добавлен', 'success');
-            }
-            
-            document.getElementById('mobileProductName').value = '';
-            document.getElementById('mobileProductPurchase').value = '';
-            document.getElementById('mobileProductPrice').value = '';
-            document.getElementById('mobileProductQty').value = '';
-            
-            renderMobileProducts();
-            renderMobileProductsStats();
-            renderMobileHome();
-        }
-
-        function renderMobileProducts() {
-            const container = document.getElementById('mobileProductsList');
-            if (!container) return;
-            
-            if (products.length === 0) {
-                container.innerHTML = '<div class="mobile-card" style="text-align: center;"><span style="font-size: 32px;">📦</span><p style="font-size: 12px;">Нет товаров</p></div>';
+            if (recentSales.length === 0) {
+                container.innerHTML = '<p style="color: #6c757d; text-align: center; padding: 8px; font-size: 11px;">Нет продаж</p>';
                 return;
             }
             
             let html = '';
-            products.forEach(p => {
+            recentSales.forEach(sale => {
+                const client = findClientById(sale.client_id);
+                const clientName = client?.name || '👤 Клиент удален';
+                let statusIcon = '';
+                if (sale.payment_status === 'cash') statusIcon = '💰';
+                else if (sale.payment_status === 'debt') statusIcon = '📝';
+                else if (sale.payment_status === 'partial') statusIcon = '🔄';
+                
                 html += `
-                    <div class="mobile-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <h3 style="margin-bottom: 4px; font-size: 15px;">${p.name}</h3>
-                                <div style="display: flex; gap: 10px; font-size: 11px;">
-                                    <span>💰 ${(p.sale_price || 0).toFixed(0)} сом</span>
-                                    <span>📦 ${p.qty_in_stock || 0} шт</span>
-                                    <span style="color: #28a745;">+${(p.profit_per_unit || 0).toFixed(0)} сом</span>
-                                </div>
+                    <div class="history-item">
+                        <div class="history-left">
+                            <div class="history-icon" style="background: #28a74520; color: #28a745;">💰</div>
+                            <div class="history-details">
+                                <span class="history-title">Продажа #${sale.id}</span>
+                                <span class="history-subtitle">${clientName} · ${formatDate(sale.date_time)} ${statusIcon}</span>
                             </div>
-                            <button class="btn-remove" onclick="deleteMobileProduct(${p.id})" style="width: 32px; height: 32px;">🗑️</button>
+                        </div>
+                        <div class="history-amount amount-positive">
+                            +${(sale.total_sum || 0).toFixed(0)} сом
                         </div>
                     </div>
                 `;
             });
             
             container.innerHTML = html;
-        }
-
-        function deleteMobileProduct(id) {
-            if (!confirm('Удалить товар?')) return;
-            products = products.filter(p => p.id !== id);
-            saveData();
-            renderMobileProducts();
-            renderMobileProductsStats();
-            renderMobileHome();
-        }
-
-        // ==================== КЛИЕНТЫ - ДОБАВЛЕНА ВОЗМОЖНОСТЬ УДАЛЕНИЯ ЧЕРЕЗ FIREBASE ====================
-        async function addMobileClient() {
-            const name = document.getElementById('mobileClientName').value.trim();
-            const phone = document.getElementById('mobileClientPhone').value.trim();
-            
-            if (!name) {
-                showMobileAlert('❌ Введите имя клиента', 'error');
-                return;
-            }
-            
-            const client = {
-                id: nextClientId++,
-                name: name,
-                phone: phone,
-                total_purchases: 0,
-                total_debt: 0,
-                created_at: new Date().toISOString()
-            };
-            
-            clients.push(client);
-            saveData();
-            
-            // Сохраняем в Firebase
-            if (db && isFirebaseConnected) {
-                try {
-                    await db.collection('clients').add(client);
-                } catch (e) {
-                    console.error('Firebase save error:', e);
-                }
-            }
-            
-            document.getElementById('mobileClientName').value = '';
-            document.getElementById('mobileClientPhone').value = '';
-            
-            renderMobileClients();
-            renderMobileClientSelect();
-            showMobileAlert('✅ Клиент добавлен', 'success');
-        }
-
-        async function deleteMobileClient(id) {
-            if (!confirm('⚠️ Вы уверены, что хотите удалить клиента?\nВсе связанные продажи и долги будут отвязаны!')) {
-                return;
-            }
-            
-            // Удаляем из локального массива
-            clients = clients.filter(c => c.id !== id);
-            
-            // Находим клиента в Firebase по ID и удаляем
-            if (db && isFirebaseConnected) {
-                try {
-                    const querySnapshot = await db.collection('clients').where('id', '==', id).get();
-                    querySnapshot.forEach(async (doc) => {
-                        await db.collection('clients').doc(doc.id).delete();
-                    });
-                } catch (e) {
-                    console.error('Firebase delete error:', e);
-                }
-            }
-            
-            // Обновляем ID для новых клиентов
-            if (id < nextClientId) {
-                nextClientId = Math.max(...clients.map(c => c.id), 0) + 1;
-            }
-            
-            saveData();
-            
-            renderMobileClients();
-            renderMobileClientSelect();
-            renderMobileHome();
-            renderMobileDebts();
-            renderMobileFullHistory();
-            
-            showMobileAlert('✅ Клиент удален', 'success');
-        }
-
-        function renderMobileClients() {
-            const container = document.getElementById('mobileClientsList');
-            if (!container) return;
-            
-            if (clients.length === 0) {
-                container.innerHTML = '<div class="mobile-card" style="text-align: center;"><span style="font-size: 32px;">👥</span><p style="font-size: 12px;">Нет клиентов</p></div>';
-                return;
-            }
-            
-            let html = '';
-            clients.forEach(c => {
-                const clientDebt = sales
-                    .filter(s => s.client_id == c.id && (s.payment_status === 'debt' || s.payment_status === 'partial'))
-                    .reduce((sum, s) => {
-                        const paid = s.payment_history ? s.payment_history.reduce((p, a) => p + (a.amount || 0), 0) : 0;
-                        return sum + ((s.total_sum || 0) - paid);
-                    }, 0);
-                
-                html += `
-                    <div class="client-card">
-                        <div class="client-info">
-                            <div class="client-name">${c.name}</div>
-                            <div style="margin-bottom: 6px; font-size: 11px;">📞 ${c.phone || 'Не указан'}</div>
-                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
-                                <span>🛒 ${(c.total_purchases || 0).toFixed(0)} сом</span>
-                                ${clientDebt > 0 ? `<span class="client-debt">💰 Долг: ${clientDebt.toFixed(0)} сом</span>` : ''}
-                            </div>
-                        </div>
-                        <div class="client-actions">
-                            <button class="btn-remove" onclick="deleteMobileClient(${c.id})" style="width: 32px; height: 32px; background: #dc3545;" title="Удалить клиента">🗑️</button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        // ==================== ПРОДАЖИ ====================
-        function renderMobileClientSelect() {
-            const select = document.getElementById('mobileSaleClient');
-            if (!select) return;
-            
-            let html = '<option value="">-- Выберите клиента --</option>';
-            clients.forEach(c => {
-                html += `<option value="${c.id}">${c.name}</option>`;
-            });
-            select.innerHTML = html;
         }
 
         function addMobileSaleItem() {
@@ -1994,93 +2278,18 @@
             document.getElementById('mobileTotalAmount').innerHTML = total.toFixed(0) + ' сом';
         }
 
-        async function saveMobileSale() {
-            const clientId = document.getElementById('mobileSaleClient').value;
-            const paymentStatus = document.querySelector('input[name="mobilePaymentStatus"]:checked')?.value || 'cash';
+        function filterHistory(filter, element) {
+            currentHistoryFilter = filter;
             
-            if (!clientId) { showMobileAlert('❌ Выберите клиента', 'error'); return; }
-            if (saleItems.length === 0) { showMobileAlert('❌ Добавьте товары', 'error'); return; }
-            
-            for (let item of saleItems) {
-                const product = products.find(p => p.id === item.product_id);
-                if (!product) { showMobileAlert('❌ Товар не найден', 'error'); return; }
-                if (item.qty > (product.qty_in_stock || 0)) {
-                    showMobileAlert(`❌ Недостаточно товара ${product.name}. Доступно: ${product.qty_in_stock}`, 'error');
-                    return;
-                }
-            }
-            
-            const items = saleItems.map(item => {
-                const product = products.find(p => p.id === item.product_id);
-                return {
-                    product_id: item.product_id,
-                    product_name: product.name,
-                    qty_sold: item.qty,
-                    sale_price_at_sale: product.sale_price,
-                    purchase_price_at_sale: product.purchase_price || 0,
-                    line_sum: (product.sale_price || 0) * item.qty,
-                    line_cost: (product.purchase_price || 0) * item.qty,
-                    line_profit: ((product.sale_price || 0) - (product.purchase_price || 0)) * item.qty
-                };
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                chip.classList.remove('active');
             });
+            if (element) element.classList.add('active');
             
-            const total_sum = items.reduce((sum, i) => sum + i.line_sum, 0);
-            const total_cost = items.reduce((sum, i) => sum + i.line_cost, 0);
-            const total_profit = total_sum - total_cost;
-            
-            const sale = {
-                id: nextSaleId++,
-                date_time: new Date().toISOString(),
-                client_id: parseInt(clientId),
-                payment_status: paymentStatus,
-                items: items,
-                total_sum: total_sum,
-                total_cost: total_cost,
-                total_profit: total_profit,
-                payment_history: paymentStatus === 'cash' ? [{
-                    id: Date.now(),
-                    amount: total_sum,
-                    date: new Date().toISOString()
-                }] : []
-            };
-            
-            saleItems.forEach(item => {
-                const product = products.find(p => p.id === item.product_id);
-                if (product) product.qty_in_stock = (product.qty_in_stock || 0) - item.qty;
-            });
-            
-            const client = clients.find(c => c.id == clientId);
-            if (client) {
-                client.total_purchases = (client.total_purchases || 0) + total_sum;
-                if (paymentStatus === 'debt') client.total_debt = (client.total_debt || 0) + total_sum;
-            }
-            
-            sales.push(sale);
-            saveData();
-            
-            // Сохраняем продажу в Firebase
-            if (db && isFirebaseConnected) {
-                try {
-                    await db.collection('sales').add(sale);
-                } catch (e) {
-                    console.error('Firebase save error:', e);
-                }
-            }
-            
-            saleItems = [];
-            renderMobileSaleItems();
-            renderMobileHome();
-            renderMobileProducts();
-            renderMobileProductsStats();
-            renderMobileClients();
             renderMobileFullHistory();
             renderMobileSalesStats();
-            renderMobileRecentOperations();
-            
-            showMobileAlert('✅ Продажа сохранена!', 'success');
         }
 
-        // ==================== ОПЛАТА ДОЛГА ====================
         function openDebtModal(saleId) {
             const sale = sales.find(s => s.id === saleId);
             const client = findClientById(sale.client_id);
@@ -2115,48 +2324,6 @@
             document.getElementById('debtModalOverlay').classList.remove('active');
         }
 
-        async function processPayment(saleId) {
-            const sale = sales.find(s => s.id === saleId);
-            const amount = parseFloat(document.getElementById('paymentAmount').value);
-            
-            if (!amount || amount <= 0) { showMobileAlert('❌ Введите сумму', 'error'); return; }
-            if (!sale.payment_history) sale.payment_history = [];
-            
-            const paidAmount = sale.payment_history.reduce((sum, p) => sum + (p.amount || 0), 0);
-            const remaining = (sale.total_sum || 0) - paidAmount;
-            if (amount > remaining) { showMobileAlert('❌ Сумма превышает остаток долга', 'error'); return; }
-            
-            sale.payment_history.push({ id: Date.now(), amount: amount, date: new Date().toISOString() });
-            const newPaid = paidAmount + amount;
-            sale.payment_status = Math.abs(newPaid - (sale.total_sum || 0)) < 0.01 ? 'cash' : 'partial';
-            
-            const client = clients.find(c => c.id == sale.client_id);
-            if (client) client.total_debt = (client.total_debt || 0) - amount;
-            
-            saveData();
-            
-            // Обновляем в Firebase
-            if (db && isFirebaseConnected) {
-                try {
-                    const querySnapshot = await db.collection('sales').where('id', '==', sale.id).get();
-                    querySnapshot.forEach(async (doc) => {
-                        await db.collection('sales').doc(doc.id).update(sale);
-                    });
-                } catch (e) {
-                    console.error('Firebase update error:', e);
-                }
-            }
-            
-            closeDebtModal();
-            renderMobileHome();
-            renderMobileClients();
-            renderMobileFullHistory();
-            renderMobileSalesStats();
-            renderMobileRecentOperations();
-            showMobileAlert(`✅ Оплачено ${amount.toFixed(0)} сом`, 'success');
-        }
-
-        // ==================== БЫСТРЫЕ ДЕЙСТВИЯ ====================
         function quickSale() {
             switchMobileTab('sales');
             if (products.length > 0) addMobileSaleItem();
@@ -2170,52 +2337,7 @@
             }, 100);
         }
 
-        function exportData() {
-            const data = { products, sales, clients, expenses, date: new Date().toISOString() };
-            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `shop-backup-${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showMobileAlert('✅ Данные экспортированы', 'success');
-        }
-
-        async function clearAllData() {
-            if (!confirm('⚠️ Вы уверены, что хотите удалить ВСЕ данные?\nЭто действие нельзя отменить!')) return;
-            products = []; sales = []; clients = []; expenses = []; saleItems = [];
-            nextProductId = 1; nextSaleId = 1; nextClientId = 1; nextExpenseId = 1;
-            
-            // Очищаем Firebase
-            if (db && isFirebaseConnected) {
-                try {
-                    const collections = ['products', 'clients', 'sales', 'expenses'];
-                    for (const col of collections) {
-                        const snapshot = await db.collection(col).get();
-                        snapshot.forEach(async (doc) => {
-                            await db.collection(col).doc(doc.id).delete();
-                        });
-                    }
-                } catch (e) {
-                    console.error('Firebase clear error:', e);
-                }
-            }
-            
-            saveData();
-            renderMobileHome();
-            renderMobileProducts();
-            renderMobileProductsStats();
-            renderMobileClients();
-            renderMobileClientSelect();
-            renderMobileExpenses();
-            renderMobileFullHistory();
-            renderMobileSalesStats();
-            renderMobileRecentOperations();
-            showMobileAlert('✅ Все данные удалены', 'success');
-        }
-
-        // ==================== НАВИГАЦИЯ - 7 ВКЛАДОК ====================
+        // ==================== НАВИГАЦИЯ ====================
         function switchMobileTab(tab) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
@@ -2237,6 +2359,7 @@
                 document.getElementById('salesTab').classList.add('active');
                 document.querySelectorAll('.nav-item')[3].classList.add('active');
                 renderMobileClientSelect();
+                renderMobileSaleItems();
             } else if (tab === 'expenses') {
                 document.getElementById('expensesTab').classList.add('active');
                 document.querySelectorAll('.nav-item')[4].classList.add('active');
@@ -2277,7 +2400,7 @@
             setTimeout(() => alertDiv.remove(), 3000);
         }
 
-        // ==================== ФУНКЦИЯ ФОРМАТИРОВАНИЯ ДАТЫ ====================
+        // ==================== ФОРМАТИРОВАНИЕ ДАТЫ ====================
         function formatDate(dateString) {
             if (!dateString) return 'Дата не указана';
             try {
@@ -2299,15 +2422,7 @@
         window.onload = async function() {
             await initFirebase();
             
-            renderMobileHome();
-            renderMobileProducts();
-            renderMobileProductsStats();
-            renderMobileClients();
-            renderMobileClientSelect();
-            renderMobileExpenses();
-            renderMobileFullHistory();
-            renderMobileSalesStats();
-            renderMobileRecentOperations();
+            renderAll();
             
             updateTime();
             setInterval(updateTime, 1000);
@@ -2316,7 +2431,7 @@
                 document.getElementById('offlineIndicator').classList.remove('show');
                 isFirebaseConnected = true;
                 document.getElementById('firebaseStatus').innerHTML = '✅ Онлайн';
-                initFirebase();
+                loadAllData();
             });
             
             window.addEventListener('offline', function() {
