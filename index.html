@@ -1,2445 +1,466 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Мой Магазин - Компактные итоги</title>
-    <!-- Firebase SDK -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Каталог товаров</title>
+
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
-    <!-- PWA Манифест -->
-    <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22%D0%9C%D0%BE%D0%B9%20%D0%9C%D0%B0%D0%B3%D0%B0%D0%B7%D0%B8%D0%BD%22%2C%22short_name%22%3A%22%D0%9C%D0%B0%D0%B3%D0%B0%D0%B7%D0%B8%D0%BD%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23667eea%22%2C%22theme_color%22%3A%22%23667eea%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data:image/png%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAABr0lEQVR4nO2Yv0vDQBTHv0gb0tLFzd%2FQxUkRwbGTc3%2BBIji4iDg4iEgHB3EqOIgUQYqDWxG3juJQKLh14e%2BhpqZNSJv2UjDvhQyB9L73OXeP914eIQSGYRiGYRiGYRhZhBAC0zRp1%2FVYLpfoug4MBgM6n0yax%2BwYRVFwXZdKKVFKKS4WC9q27T8p9M5xHOx2O6iqCiEEqqpiv99jvV7/%2BQcMw8B2u0VRFABe36iqCgD4e7lcYjQaYbVa4XA44HQ6odFo4HQ6odVqYbvdwm63ezqd4rquyFmWybIsyTRNsm1bpmkq%2B76XAEjTNEkAv91ulyzLkk3TlOfz%2BWt%2BdF1L0zQlAOy6rjwYDKRt2zJNU1lVlYzjmBzHkaZpSgBkWZZyNpvJ6XQqTdOUdV3LNE1lHMe/egCgNE2TaZrKMAxlFEUyjmMZx%2B6fHiCKIul5nuz3%2B1IURTIej2UYhtJ1XRlF0c89IEkS6Xme1O/35XA4lMPhUAZBIE3TlGEYyiRJpO/7P%2BMBMAyl4zhyOBxKx3FkGIay73tyHEf2%2B305HA5/%2B4H9fi%2B9H/PzeDzKJEkYhmEYhmEYhmGYi%2BQLTYiC2bKedfsAAAAASUVORK5CYII%3D%22%2C%22sizes%22%3A%2248x48%22%2C%22type%22%3A%22image/png%22%7D%2C%7B%22src%22%3A%22data:image/png%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAACXBIWXMAAAsTAAALEwEAmpwYAAAGKklEQVR4nO2dXWhcRRTHf5tNm6Y1FdT4AVUEUVCqIEpFUBCfRPChiBbRUkS0VNAHqYI%2BCAqCIFpFhUARHwRBah9qH7SgVUEpFj9a%2B1B8qOKDSG3TFHxIkyZNsr8HMpQw2ezs7Nm5d8/9%2B8FhYWfPzp07Z%2BfOnDkzE2itUUoppZRSSimllFJKKaWUUh2NcUzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMAzDMIyqJ7PcR2AYw2LmJ5ArzR7s4%2B%2F3u3M7eRwJkE9Nvr0SJL%2BcvX/n8Lx3QDLIldTvZ0kqjIhxHevEeOM6UkrjOlJK4zoxrhMpJXEdKaVxndx8zwsnSCaTIZVKkcPh4G/8PlJKyW63k8ViIZPJxN9kMplwOBxISknZbDZyNpOUEovFgizLonw%2BLzkcjkwmE6nV6shqteJwOEgmk5H%2B2mw2WiyW%2B0z9fT6fS0ppeD1e7%2BVj/vF6vSSlxO12k8vlIofDQZ7%2BL6Ukt9tNpVKJnE4nud1u%2Bjs2m40ymQw5nU7yer3kdDpJ13VyOBwkh/H4/STLsqlcLpPD4SDd47vdbnI4HJROpykUClEulyMpJTkcDtJ1ndd6e6WUu7xeL0kpKRaLUalUoq6uLurp6aFUKkWlUon8fj9JKSmdTlMul6Ouri4KhUKUy%2BUok8mQ3%2B%2BnUqlEmUyGcrkcj7hcLgqHw5TJZCgWi1Emk6FsNku5XI7i8Til02kKhUIUiUQol8uRw%2BGgWCxG%2BXyeisUixWIx/l8ulyOfz0c%2B308dHh8ul8tUKpUon89TLpejTCZDmUyGotEoRSIRisViFIvFyG63UzabpXg8Tk6nk3w%2BHxUKBcpmswBA4X%2BkUqnI7/dTqVSigYEBKhaL5HQ6qVQqkZSS9vf3k8PhoEAgQKVSiaLRKOVyOR6hUIgGBgYoGo2Sx%2BOhUqlETqeT/H4/9ff3UyaT4d%2BTy%2BUoEomQ1%2Bulfr/f8HooFKK%2Bvj4qFotULBYpn89TNBqlgYEBAqB8Ph8VCgUKh8OUy%2BUoHo9TMpmkQCBABwcHlM1mKR6Pk8PhoEQiQQcHBySlpP39fXK73eT3%2BykQCFA4HKZAIED5fJ4ikQhlMhlKJBJkGAY5nU7q7%2B%2BnTCZDjuF4PJ5wOEz5fJ6CwSAFAoH/Z0s6naZUKkWGYVCxWKRUKkWGYVA0GqVYLGb8n02n0xSJRMjpdFI2m6VwOEypVIqy2Szpuk7JZJIMw6B8Pk%2BpVIp0Xad0Ok2pVIrC4TBlMhlyOp2UzWYpmUxSPp83hi%2BLxWLkcrnIMAwKBoPk8/nI5/OR3%2B%2BnbDZL0WiUgsEgZTIZ8vv9lE6nKZvNmtfL6XRSMBg0rzcWi1EoFCKv10vZbJYikQgFAgHy%2B%2F2Uz%2Bcpl8uZ75bL5SgUChkA%2BSgUCgEAlUolKhaL5Pf7yev1UiaToXK5TJFIhFKpFJVKJSoWi5RKpSiZTFIymSQpJQ0MDFA8HqdSqUQDAwMUjUapVCpRPp8nwzAoEAhQJpOhcrlMhmFQJBKhSqVCiUSC0uk0DQwMULlcJofDQZlMhoLBoHFv8v8y5XKZ0uk0JZNJKpVKlMvlKJVKUSQSoUqlQrFYjDKZDBmGQcVikQYGBqhcLpOmaZRMJimVShn3HhgYoHK5TIlEgkKhEB0cHJBlWZTNZqlSqZCu6%2BbzPT4f/x2LxSgUCpFhGJTNZqlSqRgA/RSJRMjr9VK5XKZEIkEOh4MMw6BKpUI%2Br48qlQq53W4yDIMK%2BTx5PB7y%2B%2F3k8XhI13Uql8vU29tLhUIBwzAoGAySrutUKpXIsixKp9MUj8cBQHk8HjIMA1JK0nWd3G43lctlskwb6bpOWZZFw%2Bvx%2B8n4fD4yLZ1Ok2VZ5PP5yOv1kqZpZFkWmaaNisUiaZpGmqZRqVQC0L%2BxLItKpRKA/sWyLJJSkiYU7t8ky7JIE4p8Pk9SSpJSkqZpVKlUyLIs0nWdSqUSlUol6u/vJ03TqFqtUpZlYVkWKpUKJKEwLAsAIAkFAEjTNABAT08PAKBWqyGXywEALMsCgD9lWVb7e/2Zz%2BcBgCRJAgCGYQAALMuCJEmYpgkAsCwLgiAAAJL8B4IgQNM0AIDD4QAAJEmCrusAgFQqBQBIkgRN0yBJEmRZhqZpAADDMAAAhmFAkiRomsbrR0opYFkWJElq%2BbpSSimllFJKKaWUUkoppZRSSimlVDU8y/MAk0x%2BfL7/Dywg94pX8bEAAAAASUVORK5CYII%3D%22%2C%22sizes%22%3A%22100x100%22%2C%22type%22%3A%22image/png%22%7D%5D%7D">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Мой Магазин">
-    <meta name="theme-color" content="#667eea">
-    
+
     <style>
-        /* ВСЕ СТИЛИ ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
+            font-family: system-ui, sans-serif;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #667eea;
-            padding: 0;
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .phone-frame {
-            width: 100%;
-            max-width: 400px;
-            height: 780px;
-            background: white;
-            border-radius: 40px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-            position: relative;
-            overflow: hidden;
-            margin: 10px;
-        }
-
-        .phone-notch {
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 150px;
-            height: 30px;
-            background: black;
-            border-bottom-left-radius: 20px;
-            border-bottom-right-radius: 20px;
-            z-index: 100;
-        }
-
-        .phone-screen {
-            width: 100%;
-            height: 100%;
             background: #f8f9fa;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding: 50px 15px 80px 15px;
-            position: relative;
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
+            padding: 20px;
         }
 
-        .home-bar {
-            position: absolute;
-            bottom: 8px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 140px;
-            height: 5px;
-            background: #ddd;
-            border-radius: 3px;
-            z-index: 100;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 0;
-            color: #333;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 10px;
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            border-radius: 16px;
+            color: #fff;
         }
 
-        .app-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin: -50px -15px 15px -15px;
-            padding: 60px 15px 25px 15px;
-            color: white;
-            border-bottom-left-radius: 30px;
-            border-bottom-right-radius: 30px;
-            box-shadow: 0 5px 15px rgba(102,126,234,0.3);
-            position: relative;
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
         }
 
-        .app-title {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-
-        .app-subtitle {
-            font-size: 13px;
+        .header p {
             opacity: 0.9;
+            font-size: 16px;
         }
 
-        .firebase-status {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            background: rgba(0,0,0,0.2);
-            backdrop-filter: blur(10px);
-            color: white;
+        .search-section {
+            margin-bottom: 25px;
         }
 
-        .firebase-status.connected { background: rgba(40, 167, 69, 0.9); }
-        .firebase-status.disconnected { background: rgba(220, 53, 69, 0.9); }
-        .firebase-status.syncing { background: rgba(255, 193, 7, 0.9); color: black; }
-
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
+        .search-section input {
             width: 100%;
-            max-width: 400px;
-            background: white;
-            display: flex;
-            justify-content: space-around;
-            padding: 6px 2px;
-            border-top: 1px solid #f1f1f1;
-            border-radius: 25px 25px 0 0;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.03);
-            z-index: 100;
+            max-width: 500px;
+            padding: 14px 20px;
+            border-radius: 30px;
+            border: 2px solid #ddd;
+            font-size: 16px;
+            display: block;
+            margin: 0 auto;
+            transition: 0.3s;
         }
 
-        .nav-item {
-            flex: 1;
+        .search-section input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        .categories {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1px;
-            padding: 4px 0;
-            border-radius: 12px;
-            color: #6c757d;
-            font-size: 9px;
-            transition: all 0.2s;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .category-btn {
+            padding: 8px 22px;
+            border-radius: 20px;
+            border: 2px solid #ddd;
+            background: #fff;
             cursor: pointer;
+            transition: 0.3s;
+            font-size: 14px;
         }
 
-        .nav-item.active {
-            color: #667eea;
-            background: rgba(102,126,234,0.1);
+        .category-btn.active {
+            background: #2c3e50;
+            color: #fff;
+            border-color: #2c3e50;
         }
 
-        .nav-icon {
+        .category-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 25px;
+        }
+
+        .product-card {
+            background: #fff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: 0.3s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            background: #eee;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .product-image:hover {
+            opacity: 0.8;
+        }
+
+        .product-info {
+            padding: 18px;
+        }
+
+        .product-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #222;
+        }
+
+        .product-price {
+            font-size: 22px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .product-price span {
+            font-size: 14px;
+            font-weight: 400;
+            color: #888;
+        }
+
+        .product-category {
+            font-size: 13px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .product-units {
+            font-size: 13px;
+            color: #666;
+            margin-top: 6px;
+            background: #f0f0f0;
+            padding: 3px 12px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
             font-size: 18px;
         }
 
-        .tab-content {
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #888;
+            font-size: 14px;
+            border-top: 1px solid #ddd;
+        }
+
+        /* ===== МОДАЛЬНОЕ ОКНО ДЛЯ ФОТО ===== */
+        .modal {
             display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
             animation: fadeIn 0.3s;
         }
 
-        .tab-content.active {
-            display: block;
+        .modal.open {
+            display: flex;
+        }
+
+        .modal img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            background: none;
+            border: none;
+        }
+
+        .modal-close:hover {
+            color: #bbb;
+            transform: scale(1.2);
+        }
+
+        .modal-caption {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 18px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 24px;
+            border-radius: 30px;
+            text-align: center;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0.5; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .mobile-card {
-            background: white;
-            border-radius: 16px;
-            padding: 12px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-            border: 1px solid #f1f1f1;
-        }
-
-        .stats-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-
-        .stat-item {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 10px;
-            border-radius: 14px;
-            color: white;
-        }
-
-        .stat-value {
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 2px;
-        }
-
-        .stat-label {
-            font-size: 9px;
-            opacity: 0.9;
-        }
-
-        .mobile-btn {
-            width: 100%;
-            padding: 10px;
-            border-radius: 12px;
-            border: none;
-            font-weight: 600;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .mobile-btn:active { transform: scale(0.97); }
-        .btn-primary { background: #667eea; color: white; }
-        .btn-success { background: #28a745; color: white; }
-        .btn-danger { background: #dc3545; color: white; }
-        .btn-warning { background: #ffc107; color: #333; }
-        .btn-info { background: #17a2b8; color: white; }
-
-        .mobile-input {
-            width: 100%;
-            padding: 10px;
-            border: 1.5px solid #e9ecef;
-            border-radius: 12px;
-            font-size: 13px;
-            margin-bottom: 10px;
-            background: white;
-        }
-
-        .mobile-input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        select.mobile-input {
-            appearance: none;
-            background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 12px center;
-            background-size: 14px;
-            padding-right: 30px;
-        }
-
-        .sale-item {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 10px;
-            margin-bottom: 8px;
-        }
-
-        .sale-item-row {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
-
-        .sale-item-select {
-            flex: 2;
-            padding: 8px;
-            border-radius: 10px;
-            border: 1px solid #dee2e6;
-            font-size: 12px;
-        }
-
-        .sale-item-qty {
-            flex: 1;
-            padding: 8px;
-            border-radius: 10px;
-            border: 1px solid #dee2e6;
-            font-size: 12px;
-        }
-
-        .btn-remove {
-            background: #dc3545;
-            color: white;
-            border: none;
-            width: 34px;
-            height: 34px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .total-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 16px;
-            padding: 14px;
-            color: white;
-            margin: 12px 0;
-        }
-
-        .total-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            font-size: 13px;
-        }
-
-        .total-row:last-child {
-            border-bottom: none;
-            border-top: 2px solid rgba(255,255,255,0.2);
-            margin-top: 6px;
-            padding-top: 10px;
-        }
-
-        .total-amount {
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        .client-card {
-            background: white;
-            border-radius: 14px;
-            padding: 12px;
-            margin-bottom: 10px;
-            border-left: 5px solid #667eea;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .client-info {
-            flex: 1;
-        }
-
-        .client-name {
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-
-        .client-debt {
-            color: #dc3545;
-            font-weight: 600;
-            font-size: 12px;
-        }
-
-        .badge-cash { background: #d4edda; color: #155724; }
-        .badge-debt { background: #f8d7da; color: #721c24; }
-        .badge-pending { background: #fff3cd; color: #856404; }
-        .badge-partial { background: #cce5ff; color: #004085; }
-        .badge-expense { background: #f8d7da; color: #721c24; }
-        
-        .badge-category {
-            background: #e2e3e5;
-            color: #383d41;
-            padding: 3px 8px;
-            border-radius: 16px;
-            font-size: 9px;
-            font-weight: 600;
-        }
-
-        .mobile-modal {
-            position: fixed;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 400px;
-            background: white;
-            border-radius: 25px 25px 0 0;
-            padding: 20px;
-            animation: slideUp 0.3s;
-            z-index: 1000;
-            box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
-        }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 999;
-            display: none;
-        }
-
-        .modal-overlay.active { display: block; }
-
-        @keyframes slideUp {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
-        }
-
-        .payment-info {
-            background: #f8f9fa;
-            border-radius: 14px;
-            padding: 12px;
-            margin-bottom: 16px;
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 6px;
-            font-size: 13px;
-        }
-
-        .remaining-amount {
-            color: #dc3545;
-            font-weight: 700;
-            font-size: 18px;
-        }
-
-        .offline-indicator {
-            background: #ffc107;
-            color: #333;
-            padding: 6px;
-            text-align: center;
-            font-size: 11px;
-            font-weight: 600;
-            display: none;
-        }
-
-        .offline-indicator.show { display: block; }
-
-        @media (max-width: 400px) {
-            .phone-frame {
-                height: 100vh;
-                margin: 0;
-                border-radius: 0;
+            from {
+                opacity: 0;
+                transform: scale(0.9);
             }
-            .phone-notch, .home-bar { display: none; }
-            .app-header { border-radius: 0; }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
 
-        .category-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .category-item {
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            border: 1px solid #e9ecef;
-        }
-
-        .category-icon { font-size: 20px; }
-        .category-name { font-weight: 600; font-size: 11px; }
-        .category-amount { font-weight: 700; color: #dc3545; font-size: 12px; }
-
-        .history-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #f1f1f1;
-            font-size: 12px;
-        }
-
-        .history-item:last-child { border-bottom: none; }
-
-        .history-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .history-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-        }
-
-        .history-details {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .history-title { font-weight: 600; font-size: 12px; }
-        .history-subtitle { font-size: 9px; color: #6c757d; }
-        .history-amount { font-weight: 700; font-size: 12px; }
-        .amount-positive { color: #28a745; }
-        .amount-negative { color: #dc3545; }
-
-        .filter-bar {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
-            overflow-x: auto;
-            padding-bottom: 4px;
-        }
-
-        .filter-chip {
-            padding: 6px 12px;
-            border-radius: 30px;
-            background: white;
-            border: 1px solid #dee2e6;
-            font-size: 10px;
-            font-weight: 600;
-            color: #6c757d;
-            white-space: nowrap;
-            cursor: pointer;
-        }
-
-        .filter-chip.active {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-
-        .expense-card {
-            background: white;
-            border-radius: 14px;
-            padding: 12px;
-            margin-bottom: 8px;
-            border-left: 5px solid #dc3545;
-        }
-
-        .profit-badge {
-            background: #d4edda;
-            color: #155724;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-size: 10px;
-            font-weight: 600;
-        }
-
-        .summary-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 16px;
-            padding: 14px;
-            color: white;
-            margin-bottom: 15px;
-        }
-        
-        .section-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        
-        .section-title h3 {
-            font-size: 14px;
-        }
-        
-        .expense-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        
-        .stat-small {
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 12px;
-        }
-        
-        .history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        
-        .history-header h3 {
-            font-size: 14px;
-        }
-        
-        .client-actions {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
-        
-        .btn-small {
-            padding: 6px 10px;
-            font-size: 10px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-        }
-
-        /* КОМПАКТНЫЕ ИТОГИ */
-        .totals-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 14px;
-            padding: 12px;
-            margin-bottom: 15px;
-            color: white;
-            box-shadow: 0 4px 12px rgba(102,126,234,0.2);
-        }
-
-        .totals-card h3 {
-            font-size: 13px;
-            margin: 0;
-        }
-
-        .totals-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .totals-item {
-            background: rgba(255,255,255,0.12);
-            padding: 8px;
-            border-radius: 12px;
-            backdrop-filter: blur(5px);
-        }
-
-        .totals-label {
-            font-size: 8px;
-            opacity: 0.9;
-            margin-bottom: 2px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-
-        .totals-value {
-            font-size: 14px;
-            font-weight: 700;
-            line-height: 1.2;
-        }
-
-        .totals-value-small {
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .profit-positive { color: #a5d6a5; }
-        .profit-negative { color: #f8d7da; }
-
-        .stats-divider {
-            margin: 10px 0;
-            border-top: 1px solid rgba(255,255,255,0.15);
-        }
-
-        .today-stats {
-            background: rgba(255,255,255,0.08);
-            border-radius: 12px;
-            padding: 10px;
-            margin-top: 8px;
-        }
-
-        .today-stats div {
-            font-size: 11px;
-        }
-
-        .compact-stat-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-            font-size: 11px;
-        }
-        
-        .text-small {
-            font-size: 10px;
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 24px;
+            }
+            .products-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+            }
+            .product-image {
+                height: 150px;
+            }
+            .product-info {
+                padding: 12px;
+            }
+            .product-price {
+                font-size: 18px;
+            }
+            .modal img {
+                max-width: 95%;
+                max-height: 80%;
+            }
+            .modal-caption {
+                font-size: 14px;
+                padding: 8px 16px;
+                bottom: 15px;
+            }
+            .modal-close {
+                top: 10px;
+                right: 20px;
+                font-size: 30px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="phone-frame">
-        <div class="phone-notch"></div>
-        
-        <div class="phone-screen" id="phoneScreen">
-            <div class="offline-indicator" id="offlineIndicator">
-                📡 Нет подключения к интернету
-            </div>
-            
-            <div class="app-header">
-                <div class="status-bar">
-                    <span>📶 5G</span>
-                    <span>🔋 100%</span>
-                    <span id="currentTime"></span>
-                </div>
-                <div class="app-title">📱 Мой Магазин</div>
-                <div class="app-subtitle">Управление продажами и расходами</div>
-                <div id="firebaseStatus" class="firebase-status connected">
-                    ✅ Онлайн
-                </div>
-            </div>
 
-            <!-- НИЖНЯЯ НАВИГАЦИЯ - 7 ВКЛАДОК -->
-            <div class="bottom-nav">
-                <div class="nav-item active" onclick="switchMobileTab('home')">
-                    <span class="nav-icon">🏠</span>
-                    <span>Главная</span>
-                </div>
-                <div class="nav-item" onclick="switchMobileTab('products')">
-                    <span class="nav-icon">📦</span>
-                    <span>Товары</span>
-                </div>
-                <div class="nav-item" onclick="switchMobileTab('clients')">
-                    <span class="nav-icon">👥</span>
-                    <span>Клиенты</span>
-                </div>
-                <div class="nav-item" onclick="switchMobileTab('sales')">
-                    <span class="nav-icon">💰</span>
-                    <span>Продажи</span>
-                </div>
-                <div class="nav-item" onclick="switchMobileTab('expenses')">
-                    <span class="nav-icon">📉</span>
-                    <span>Расходы</span>
-                </div>
-                <div class="nav-item" onclick="switchMobileTab('history')">
-                    <span class="nav-icon">📋</span>
-                    <span>История</span>
-                </div>
-                <div class="nav-item" onclick="switchMobileTab('settings')">
-                    <span class="nav-icon">⚙️</span>
-                    <span>Настройки</span>
-                </div>
-            </div>
+    <div class="container">
 
-            <!-- ==================== ГЛАВНАЯ ==================== -->
-            <div id="homeTab" class="tab-content active">
-                <div class="stats-row">
-                    <div class="stat-item">
-                        <div class="stat-value" id="mobileTotalProducts">0</div>
-                        <div class="stat-label">Товаров</div>
-                    </div>
-                    <div class="stat-item" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                        <div class="stat-value" id="mobileTotalSales">0</div>
-                        <div class="stat-label">Продаж</div>
-                    </div>
-                    <div class="stat-item" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-                        <div class="stat-value" id="mobileTotalRevenue">0</div>
-                        <div class="stat-label">Выручка</div>
-                    </div>
-                    <div class="stat-item" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
-                        <div class="stat-value" id="mobileTotalProfit">0</div>
-                        <div class="stat-label">Прибыль</div>
-                    </div>
-                </div>
-
-                <div class="summary-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-size: 11px; opacity: 0.9;">Чистая прибыль</div>
-                            <div style="font-size: 22px; font-weight: 700;" id="mobileNetProfit">0 сом</div>
-                        </div>
-                        <div style="font-size: 32px;">📊</div>
-                    </div>
-                    <div style="display: flex; gap: 15px; margin-top: 12px;">
-                        <div style="flex: 1; text-align: center;">
-                            <div style="font-size: 10px; opacity: 0.9;">Расходы</div>
-                            <div style="font-weight: 600; font-size: 13px;" id="mobileTotalExpenses">0 сом</div>
-                        </div>
-                        <div style="flex: 1; text-align: center;">
-                            <div style="font-size: 10px; opacity: 0.9;">Долги</div>
-                            <div style="font-weight: 600; font-size: 13px;" id="mobileTotalDebt">0 сом</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mobile-card">
-                    <div class="section-title">
-                        <h3>📂 Категории расходов</h3>
-                        <span style="color: #667eea; font-size: 11px;" onclick="switchMobileTab('expenses')">Все →</span>
-                    </div>
-                    <div id="mobileExpenseCategories" class="category-grid"></div>
-                </div>
-
-                <div class="mobile-card">
-                    <div class="section-title">
-                        <h3>⚡ Быстрые действия</h3>
-                    </div>
-                    <button class="mobile-btn btn-success" onclick="quickSale()">
-                        <span style="font-size: 18px;">💰</span> Быстрая продажа
-                    </button>
-                    <button class="mobile-btn btn-primary" onclick="switchMobileTab('clients')">
-                        <span style="font-size: 18px;">👤</span> Добавить клиента
-                    </button>
-                    <button class="mobile-btn btn-danger" onclick="openExpenseModal()">
-                        <span style="font-size: 18px;">📉</span> Добавить расход
-                    </button>
-                    <button class="mobile-btn btn-warning" onclick="showDebtors()">
-                        <span style="font-size: 18px;">📝</span> Должники
-                    </button>
-                </div>
-
-                <div class="mobile-card">
-                    <div class="section-title">
-                        <h3>🔄 Последние продажи</h3>
-                        <span style="color: #667eea; font-size: 11px;" onclick="switchMobileTab('history')">Все →</span>
-                    </div>
-                    <div id="mobileRecentOperations"></div>
-                </div>
-
-                <div class="mobile-card">
-                    <h3 style="margin-bottom: 12px; font-size: 14px;">⚠️ Долги клиентов</h3>
-                    <div id="mobileDebts"></div>
-                </div>
-            </div>
-
-            <!-- ==================== ТОВАРЫ ==================== -->
-            <div id="productsTab" class="tab-content">
-                <div class="mobile-card">
-                    <h3 style="margin-bottom: 12px; font-size: 14px;">➕ Добавить товар</h3>
-                    <input type="text" class="mobile-input" id="mobileProductName" placeholder="Название товара">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                        <input type="number" class="mobile-input" id="mobileProductPurchase" placeholder="Себестоимость">
-                        <input type="number" class="mobile-input" id="mobileProductPrice" placeholder="Цена">
-                    </div>
-                    <input type="number" class="mobile-input" id="mobileProductQty" placeholder="Количество">
-                    <button class="mobile-btn btn-primary" onclick="addMobileProduct()">✅ Добавить</button>
-                </div>
-                <div id="mobileProductsStats"></div>
-                <div id="mobileProductsList"></div>
-            </div>
-
-            <!-- ==================== КЛИЕНТЫ ==================== -->
-            <div id="clientsTab" class="tab-content">
-                <div class="mobile-card">
-                    <h3 style="margin-bottom: 12px; font-size: 14px;">👤 Новый клиент</h3>
-                    <input type="text" class="mobile-input" id="mobileClientName" placeholder="Имя клиента">
-                    <input type="text" class="mobile-input" id="mobileClientPhone" placeholder="Телефон">
-                    <button class="mobile-btn btn-success" onclick="addMobileClient()">✅ Добавить</button>
-                </div>
-                <div id="mobileClientsList"></div>
-            </div>
-
-            <!-- ==================== ПРОДАЖИ ==================== -->
-            <div id="salesTab" class="tab-content">
-                <div class="mobile-card">
-                    <h3 style="margin-bottom: 12px; font-size: 14px;">💰 Новая продажа</h3>
-                    <select class="mobile-input" id="mobileSaleClient">
-                        <option value="">Выберите клиента</option>
-                    </select>
-                    
-                    <div id="mobileSaleItems"></div>
-                    
-                    <button class="mobile-btn btn-primary" onclick="addMobileSaleItem()" style="margin-bottom: 12px;">
-                        ➕ Добавить товар
-                    </button>
-
-                    <div style="display: flex; gap: 12px; padding: 8px; background: #f8f9fa; border-radius: 12px; margin-bottom: 12px;">
-                        <label style="display: flex; align-items: center; gap: 4px; font-size: 12px;">
-                            <input type="radio" name="mobilePaymentStatus" value="cash" checked> 💵 Наличные
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 4px; font-size: 12px;">
-                            <input type="radio" name="mobilePaymentStatus" value="debt"> 📝 В долг
-                        </label>
-                    </div>
-
-                    <div class="total-card">
-                        <div class="total-row">
-                            <span>Сумма:</span>
-                            <span class="total-amount" id="mobileTotalAmount">0 сом</span>
-                        </div>
-                        <button class="mobile-btn btn-success" onclick="saveMobileSale()" style="margin-top: 12px;">
-                            💾 Сохранить продажу
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ==================== РАСХОДЫ ==================== -->
-            <div id="expensesTab" class="tab-content">
-                <div class="mobile-card">
-                    <div class="section-title">
-                        <h3 style="font-size: 14px;">📉 Управление расходами</h3>
-                        <button class="mobile-btn btn-danger" style="width: auto; padding: 8px 16px; margin-bottom: 0;" onclick="openExpenseModal()">
-                            ➕ Добавить
-                        </button>
-                    </div>
-                    
-                    <div class="expense-stats">
-                        <div class="stat-small">
-                            <div style="font-size: 9px; color: #6c757d;">Всего расходов</div>
-                            <div style="font-size: 18px; font-weight: 700; color: #dc3545;" id="mobileExpensesTotal">0 сом</div>
-                        </div>
-                        <div class="stat-small">
-                            <div style="font-size: 9px; color: #6c757d;">За 30 дней</div>
-                            <div style="font-size: 18px; font-weight: 700; color: #dc3545;" id="mobileExpensesMonth">0 сом</div>
-                        </div>
-                    </div>
-                    
-                    <div id="mobileExpensesFullList"></div>
-                </div>
-            </div>
-
-            <!-- ==================== ИСТОРИЯ ==================== -->
-            <div id="historyTab" class="tab-content">
-                <div class="mobile-card">
-                    <div class="history-header">
-                        <h3 style="font-size: 14px;">📋 История продаж</h3>
-                        <button class="mobile-btn btn-danger" style="width: auto; padding: 8px 16px; margin-bottom: 0;" onclick="clearSalesHistory()">
-                            🗑️ Очистить
-                        </button>
-                    </div>
-                    
-                    <div class="filter-bar" id="historyFilters">
-                        <span class="filter-chip active" onclick="filterHistory('all', this)">Все</span>
-                        <span class="filter-chip" onclick="filterHistory('cash', this)">💰 Оплачено</span>
-                        <span class="filter-chip" onclick="filterHistory('debt', this)">📝 В долг</span>
-                        <span class="filter-chip" onclick="filterHistory('partial', this)">🔄 Частично</span>
-                    </div>
-                    
-                    <div id="mobileSalesStats"></div>
-                    <div id="mobileFullHistoryList"></div>
-                </div>
-            </div>
-
-            <!-- ==================== НАСТРОЙКИ ==================== -->
-            <div id="settingsTab" class="tab-content">
-                <div class="mobile-card">
-                    <h3 style="margin-bottom: 15px; font-size: 14px;">⚙️ Настройки</h3>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                            <span style="font-size: 20px;">📱</span>
-                            <div>
-                                <strong style="font-size: 13px;">PWA приложение</strong>
-                                <p style="font-size: 10px; color: #6c757d;">Установите на главный экран</p>
-                            </div>
-                        </div>
-                        <button class="mobile-btn btn-primary" onclick="installPWA()">
-                            📲 Установить приложение
-                        </button>
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                            <span style="font-size: 20px;">📊</span>
-                            <div>
-                                <strong style="font-size: 13px;">Управление данными</strong>
-                            </div>
-                        </div>
-                        <button class="mobile-btn btn-warning" onclick="exportData()" style="margin-bottom: 8px;">
-                            📤 Экспорт данных
-                        </button>
-                        <button class="mobile-btn btn-danger" onclick="clearAllData()" style="margin-bottom: 8px;">
-                            🗑️ Очистить все данные
-                        </button>
-                        <button class="mobile-btn btn-danger" onclick="clearSalesHistory()">
-                            📋 Очистить историю продаж
-                        </button>
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                            <span style="font-size: 20px;">🌙</span>
-                            <div>
-                                <strong style="font-size: 13px;">Оффлайн режим</strong>
-                                <p style="font-size: 10px; color: #6c757d;">Работает без интернета</p>
-                            </div>
-                        </div>
-                        <div style="background: #d4edda; padding: 8px; border-radius: 10px; color: #155724; font-size: 12px;">
-                            ✅ Автосинхронизация включена
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="header">
+            <h1>📦 Наш каталог</h1>
+            <p>Актуальные цены и наличие</p>
         </div>
-        
-        <div class="home-bar"></div>
+
+        <div class="search-section">
+            <input type="text" id="searchInput" placeholder="🔍 Поиск товаров..." oninput="searchProducts()" />
+        </div>
+
+        <div class="categories" id="categoriesContainer">
+            <button class="category-btn active" data-category="all" onclick="filterProducts('all')">Все</button>
+        </div>
+
+        <div id="productsContainer" class="products-grid">
+            <div class="loading">⏳ Загрузка...</div>
+        </div>
+
+        <div class="footer">
+            © 2026 Все права защищены
+        </div>
     </div>
 
-    <!-- Модалка оплаты долга -->
-    <div class="modal-overlay" id="debtModalOverlay" onclick="closeDebtModal()"></div>
-    <div class="mobile-modal" id="debtModal" style="display: none;">
-        <h3 style="margin-bottom: 15px; font-size: 16px;">💰 Оплата долга</h3>
-        <div id="debtModalContent"></div>
-    </div>
-
-    <!-- Модалка добавления расхода -->
-    <div class="modal-overlay" id="expenseModalOverlay" onclick="closeExpenseModal()"></div>
-    <div class="mobile-modal" id="expenseModal" style="display: none;">
-        <h3 style="margin-bottom: 15px; font-size: 16px;">📉 Добавить расход</h3>
-        <div class="payment-info" id="expenseModalContent">
-            <div style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px;">Название расхода *</label>
-                <input type="text" class="mobile-input" id="expenseName" placeholder="Например: Аренда, Зарплата" style="margin-bottom: 0;">
-            </div>
-            <div style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px;">Категория</label>
-                <select class="mobile-input" id="expenseCategory" style="margin-bottom: 0;">
-                    <option value="Аренда">🏢 Аренда</option>
-                    <option value="Зарплата">👥 Зарплата</option>
-                    <option value="Реклама">📢 Реклама</option>
-                    <option value="Транспорт">🚚 Транспорт</option>
-                    <option value="Коммунальные услуги">💡 Коммунальные</option>
-                    <option value="Оборудование">🖥️ Оборудование</option>
-                    <option value="Налоги">📄 Налоги</option>
-                    <option value="Прочее">📌 Прочее</option>
-                </select>
-            </div>
-            <div style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px;">Сумма (сом) *</label>
-                <input type="number" class="mobile-input" id="expenseAmount" placeholder="1000" min="0.01" step="0.01" style="margin-bottom: 0;">
-            </div>
-            <div style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px;">Дата</label>
-                <input type="date" class="mobile-input" id="expenseDate" style="margin-bottom: 0;">
-            </div>
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px;">Описание</label>
-                <textarea class="mobile-input" id="expenseDescription" placeholder="Дополнительная информация..." rows="2" style="margin-bottom: 0;"></textarea>
-            </div>
-            <div style="display: flex; gap: 8px;">
-                <button class="mobile-btn btn-success" style="flex: 2;" onclick="saveMobileExpense()">
-                    ✅ Сохранить расход
-                </button>
-                <button class="mobile-btn" style="flex: 1; background: #6c757d; color: white;" onclick="closeExpenseModal()">
-                    ✕
-                </button>
-            </div>
-        </div>
+    <!-- ===== МОДАЛЬНОЕ ОКНО ===== -->
+    <div id="imageModal" class="modal" onclick="closeModal()">
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <img id="modalImage" src="" alt="Фото товара" />
+        <div id="modalCaption" class="modal-caption"></div>
     </div>
 
     <script>
-        // ==================== FIREBASE КОНФИГУРАЦИЯ ====================
-        const firebaseConfig = {
-            apiKey: "AIzaSyBsV63I1zY66b_i8oP9Ob462MAdts1bTBA",
-            authDomain: "avaz-9ea76.firebaseapp.com",
-            projectId: "avaz-9ea76",
-            storageBucket: "avaz-9ea76.firebasestorage.app",
-            messagingSenderId: "288425924154",
-            appId: "1:288425924154:web:c2b25e7c89a20900664703"
-        };
+        // ============================================
+        //  FIREBASE
+        // ============================================
+   const firebaseConfig = {
+    apiKey: "AIzaSyCSccC9eNGbH7HemFZufq8Gk_4tbubA5xk",
+    authDomain: "flutter-ai-playground-61328.firebaseapp.com",
+    projectId: "flutter-ai-playground-61328",
+    storageBucket: "flutter-ai-playground-61328.firebasestorage.app",
+    messagingSenderId: "118637911686",
+    appId: "1:118637911686:web:7d4c35627ffe86abf63b07"
+};
 
-        let firebaseApp = null;
-        let db = null;
-        let isFirebaseConnected = true;
-        let deferredPrompt;
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
-        // ==================== ТОЛЬКО FIREBASE - БЕЗ LOCALSTORAGE ====================
         let products = [];
-        let sales = [];
-        let clients = [];
-        let expenses = [];
-        
-        let nextProductId = 1;
-        let nextSaleId = 1;
-        let nextClientId = 1;
-        let nextExpenseId = 1;
-        let saleItems = [];
-        let currentHistoryFilter = 'all';
+        let currentCategory = 'all';
+        let searchQuery = '';
 
-        // ==================== ФУНКЦИЯ ПОИСКА КЛИЕНТА ====================
-        function findClientById(clientId) {
-            if (clientId === undefined || clientId === null) return null;
-            const id = Number(clientId);
-            const client = clients.find(c => Number(c.id) === id);
-            return client || null;
+        // ============================================
+        //  ОТКРЫТЬ ФОТО В ПОЛНЫЙ РАЗМЕР
+        // ============================================
+        function openModal(imageSrc, productName) {
+            const modal = document.getElementById('imageModal');
+            const img = document.getElementById('modalImage');
+            const caption = document.getElementById('modalCaption');
+
+            img.src = imageSrc;
+            caption.textContent = productName || 'Фото товара';
+            modal.classList.add('open');
+            document.body.style.overflow = 'hidden'; // блокируем скролл
         }
 
-        // ==================== PWA УСТАНОВКА ====================
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
+        function closeModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.remove('open');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Закрытие по Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
         });
 
-        async function installPWA() {
-            if (!deferredPrompt) {
-                showMobileAlert('✅ Приложение уже установлено или не поддерживается', 'success');
-                return;
-            }
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                showMobileAlert('✅ Приложение установлено на телефон!', 'success');
-            }
-            deferredPrompt = null;
-        }
-
-        // ==================== ИНИЦИАЛИЗАЦИЯ FIREBASE ====================
-        async function initFirebase() {
-            try {
-                firebaseApp = firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                
-                try {
-                    await db.enablePersistence({
-                        synchronizeTabs: true
+        // ============================================
+        //  ЗАГРУЗКА ТОВАРОВ
+        // ============================================
+        function loadProducts() {
+            db.collection('products')
+                .orderBy('createdAt', 'desc')
+                .onSnapshot((snapshot) => {
+                    products = [];
+                    snapshot.forEach(doc => {
+                        products.push({ id: doc.id, ...doc.data() });
                     });
-                    console.log('Offline persistence enabled');
-                } catch (err) {
-                    console.warn('Persistence error:', err);
-                }
-
-                await db.collection('_test').doc('test').set({
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    renderProducts();
+                    updateCategories();
                 });
-
-                isFirebaseConnected = true;
-                document.getElementById('firebaseStatus').innerHTML = '✅ Онлайн';
-                
-                await loadAllData();
-                return true;
-            } catch (error) {
-                console.error('Firebase init error:', error);
-                isFirebaseConnected = false;
-                document.getElementById('firebaseStatus').innerHTML = '❌ Оффлайн';
-                document.getElementById('offlineIndicator').classList.add('show');
-                
-                // Загружаем из кэша Firebase если есть
-                await loadAllData();
-                return false;
-            }
         }
 
-        async function loadAllData() {
-            if (!db) return;
-            
-            try {
-                // Загружаем продукты
-                const productsSnap = await db.collection('products').get();
-                products = [];
-                productsSnap.forEach(doc => {
-                    products.push({ ...doc.data(), firebaseId: doc.id });
-                });
-                
-                // Загружаем клиентов
-                const clientsSnap = await db.collection('clients').get();
-                clients = [];
-                clientsSnap.forEach(doc => {
-                    clients.push({ ...doc.data(), firebaseId: doc.id });
-                });
-                
-                // Загружаем продажи
-                const salesSnap = await db.collection('sales').orderBy('date_time', 'desc').get();
-                sales = [];
-                salesSnap.forEach(doc => {
-                    sales.push({ ...doc.data(), firebaseId: doc.id });
-                });
-                
-                // Загружаем расходы
-                const expensesSnap = await db.collection('expenses').orderBy('date', 'desc').get();
-                expenses = [];
-                expensesSnap.forEach(doc => {
-                    expenses.push({ ...doc.data(), firebaseId: doc.id });
-                });
-                
-                // Обновляем nextId
-                if (products.length > 0) {
-                    nextProductId = Math.max(...products.map(p => p.id || 0)) + 1;
-                }
-                if (clients.length > 0) {
-                    nextClientId = Math.max(...clients.map(c => c.id || 0)) + 1;
-                }
-                if (sales.length > 0) {
-                    nextSaleId = Math.max(...sales.map(s => s.id || 0)) + 1;
-                }
-                if (expenses.length > 0) {
-                    nextExpenseId = Math.max(...expenses.map(e => e.id || 0)) + 1;
-                }
-                
-                renderAll();
-                
-            } catch (e) {
-                console.error('Firebase load error:', e);
-            }
+        function searchProducts() {
+            searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+            renderProducts();
         }
 
-        // ==================== РАСХОДЫ ====================
-        function openExpenseModal() {
-            const modal = document.getElementById('expenseModal');
-            const overlay = document.getElementById('expenseModalOverlay');
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('expenseDate').value = today;
-            modal.style.display = 'block';
-            overlay.classList.add('active');
+        function getFilteredProducts() {
+            let filtered = products;
+            if (currentCategory !== 'all') {
+                filtered = filtered.filter(p => p.category === currentCategory);
+            }
+            if (searchQuery) {
+                filtered = filtered.filter(p =>
+                    p.name.toLowerCase().includes(searchQuery)
+                );
+            }
+            return filtered;
         }
 
-        function closeExpenseModal() {
-            document.getElementById('expenseModal').style.display = 'none';
-            document.getElementById('expenseModalOverlay').classList.remove('active');
-            document.getElementById('expenseName').value = '';
-            document.getElementById('expenseAmount').value = '';
-            document.getElementById('expenseDescription').value = '';
-        }
+        function renderProducts() {
+            const container = document.getElementById('productsContainer');
+            const filtered = getFilteredProducts();
 
-        async function saveMobileExpense() {
-            const name = document.getElementById('expenseName').value.trim();
-            const category = document.getElementById('expenseCategory').value;
-            const amount = parseFloat(document.getElementById('expenseAmount').value);
-            const date = document.getElementById('expenseDate').value;
-            const description = document.getElementById('expenseDescription').value.trim();
-            
-            if (!name || !amount) {
-                showMobileAlert('❌ Заполните название и сумму', 'error');
-                return;
-            }
-            
-            const expense = {
-                id: nextExpenseId++,
-                name: name,
-                category: category,
-                amount: amount,
-                date: date || new Date().toISOString().split('T')[0],
-                description: description,
-                created_at: new Date().toISOString()
-            };
-            
-            if (db && isFirebaseConnected) {
-                try {
-                    const docRef = await db.collection('expenses').add(expense);
-                    expense.firebaseId = docRef.id;
-                } catch (e) {
-                    console.error('Firebase save error:', e);
-                    showMobileAlert('❌ Ошибка сохранения в Firebase', 'error');
-                    return;
-                }
-            }
-            
-            expenses.push(expense);
-            
-            closeExpenseModal();
-            renderAll();
-            
-            showMobileAlert('✅ Расход добавлен', 'success');
-        }
-
-        async function deleteMobileExpense(id) {
-            if (!confirm('Удалить расход?')) return;
-            
-            const expense = expenses.find(e => e.id === id);
-            
-            if (db && isFirebaseConnected && expense?.firebaseId) {
-                try {
-                    await db.collection('expenses').doc(expense.firebaseId).delete();
-                } catch (e) {
-                    console.error('Firebase delete error:', e);
-                    showMobileAlert('❌ Ошибка удаления из Firebase', 'error');
-                    return;
-                }
-            }
-            
-            expenses = expenses.filter(e => e.id !== id);
-            renderAll();
-        }
-
-        // ==================== ТОВАРЫ ====================
-        async function addMobileProduct() {
-            const name = document.getElementById('mobileProductName').value.trim();
-            const purchase = parseFloat(document.getElementById('mobileProductPurchase').value) || 0;
-            const price = parseFloat(document.getElementById('mobileProductPrice').value);
-            const qty = parseInt(document.getElementById('mobileProductQty').value);
-            
-            if (!name || !price || !qty) {
-                showMobileAlert('❌ Заполните все поля', 'error');
-                return;
-            }
-            
-            const existingProduct = products.find(p => p.name.toLowerCase() === name.toLowerCase());
-            
-            if (existingProduct) {
-                existingProduct.qty_in_stock = (existingProduct.qty_in_stock || 0) + qty;
-                existingProduct.purchase_price = purchase;
-                existingProduct.sale_price = price;
-                existingProduct.profit_per_unit = price - purchase;
-                existingProduct.updated_at = new Date().toISOString();
-                
-                if (db && isFirebaseConnected && existingProduct.firebaseId) {
-                    try {
-                        await db.collection('products').doc(existingProduct.firebaseId).update(existingProduct);
-                    } catch (e) {
-                        console.error('Firebase update error:', e);
-                    }
-                }
-                
-                showMobileAlert(`✅ К товару "${name}" добавлено +${qty} шт`, 'success');
-            } else {
-                const product = {
-                    id: nextProductId++,
-                    name: name,
-                    purchase_price: purchase,
-                    sale_price: price,
-                    qty_in_stock: qty,
-                    profit_per_unit: price - purchase,
-                    created_at: new Date().toISOString()
-                };
-                
-                if (db && isFirebaseConnected) {
-                    try {
-                        const docRef = await db.collection('products').add(product);
-                        product.firebaseId = docRef.id;
-                    } catch (e) {
-                        console.error('Firebase save error:', e);
-                    }
-                }
-                
-                products.push(product);
-                showMobileAlert('✅ Товар добавлен', 'success');
-            }
-            
-            document.getElementById('mobileProductName').value = '';
-            document.getElementById('mobileProductPurchase').value = '';
-            document.getElementById('mobileProductPrice').value = '';
-            document.getElementById('mobileProductQty').value = '';
-            
-            renderAll();
-        }
-
-        async function deleteMobileProduct(id) {
-            if (!confirm('Удалить товар?')) return;
-            
-            const product = products.find(p => p.id === id);
-            
-            if (db && isFirebaseConnected && product?.firebaseId) {
-                try {
-                    await db.collection('products').doc(product.firebaseId).delete();
-                } catch (e) {
-                    console.error('Firebase delete error:', e);
-                    showMobileAlert('❌ Ошибка удаления из Firebase', 'error');
-                    return;
-                }
-            }
-            
-            products = products.filter(p => p.id !== id);
-            renderAll();
-        }
-
-        // ==================== КЛИЕНТЫ ====================
-        async function addMobileClient() {
-            const name = document.getElementById('mobileClientName').value.trim();
-            const phone = document.getElementById('mobileClientPhone').value.trim();
-            
-            if (!name) {
-                showMobileAlert('❌ Введите имя клиента', 'error');
-                return;
-            }
-            
-            const client = {
-                id: nextClientId++,
-                name: name,
-                phone: phone,
-                total_purchases: 0,
-                total_debt: 0,
-                created_at: new Date().toISOString()
-            };
-            
-            if (db && isFirebaseConnected) {
-                try {
-                    const docRef = await db.collection('clients').add(client);
-                    client.firebaseId = docRef.id;
-                } catch (e) {
-                    console.error('Firebase save error:', e);
-                    showMobileAlert('❌ Ошибка сохранения в Firebase', 'error');
-                    return;
-                }
-            }
-            
-            clients.push(client);
-            
-            document.getElementById('mobileClientName').value = '';
-            document.getElementById('mobileClientPhone').value = '';
-            
-            renderAll();
-            showMobileAlert('✅ Клиент добавлен', 'success');
-        }
-
-        async function deleteMobileClient(id) {
-            if (!confirm('⚠️ Вы уверены, что хотите удалить клиента?\nВсе связанные продажи и долги будут отвязаны!')) {
-                return;
-            }
-            
-            const client = clients.find(c => c.id === id);
-            
-            if (db && isFirebaseConnected && client?.firebaseId) {
-                try {
-                    await db.collection('clients').doc(client.firebaseId).delete();
-                } catch (e) {
-                    console.error('Firebase delete error:', e);
-                    showMobileAlert('❌ Ошибка удаления из Firebase', 'error');
-                    return;
-                }
-            }
-            
-            clients = clients.filter(c => c.id !== id);
-            
-            renderAll();
-            showMobileAlert('✅ Клиент удален', 'success');
-        }
-
-        // ==================== ПРОДАЖИ ====================
-// ==================== ПРОДАЖИ ====================
-async function saveMobileSale() {
-    const clientId = document.getElementById('mobileSaleClient').value;
-    const paymentStatus = document.querySelector('input[name="mobilePaymentStatus"]:checked')?.value || 'cash';
-    
-    if (!clientId) { showMobileAlert('❌ Выберите клиента', 'error'); return; }
-    if (saleItems.length === 0) { showMobileAlert('❌ Добавьте товары', 'error'); return; }
-    
-    // Проверяем наличие товаров
-    for (let item of saleItems) {
-        const product = products.find(p => p.id === item.product_id);
-        if (!product) { showMobileAlert('❌ Товар не найден', 'error'); return; }
-        if (item.qty > (product.qty_in_stock || 0)) {
-            showMobileAlert(`❌ Недостаточно товара ${product.name}. Доступно: ${product.qty_in_stock}`, 'error');
-            return;
-        }
-    }
-    
-    const items = saleItems.map(item => {
-        const product = products.find(p => p.id === item.product_id);
-        return {
-            product_id: item.product_id,
-            product_name: product.name,
-            qty_sold: item.qty,
-            sale_price_at_sale: product.sale_price,
-            purchase_price_at_sale: product.purchase_price || 0,
-            line_sum: (product.sale_price || 0) * item.qty,
-            line_cost: (product.purchase_price || 0) * item.qty,
-            line_profit: ((product.sale_price || 0) - (product.purchase_price || 0)) * item.qty
-        };
-    });
-    
-    const total_sum = items.reduce((sum, i) => sum + i.line_sum, 0);
-    const total_cost = items.reduce((sum, i) => sum + i.line_cost, 0);
-    const total_profit = total_sum - total_cost;
-    
-    const sale = {
-        id: nextSaleId++,
-        date_time: new Date().toISOString(),
-        client_id: parseInt(clientId),
-        payment_status: paymentStatus,
-        items: items,
-        total_sum: total_sum,
-        total_cost: total_cost,
-        total_profit: total_profit,
-        payment_history: paymentStatus === 'cash' ? [{
-            id: Date.now(),
-            amount: total_sum,
-            date: new Date().toISOString()
-        }] : []
-    };
-    
-    try {
-        // Сохраняем продажу в Firebase
-        if (db && isFirebaseConnected) {
-            try {
-                const docRef = await db.collection('sales').add(sale);
-                sale.firebaseId = docRef.id;
-                console.log('Sale saved to Firebase with ID:', docRef.id);
-            } catch (e) {
-                console.error('Firebase save sale error:', e);
-                showMobileAlert('❌ Ошибка сохранения продажи', 'error');
-                return;
-            }
-        }
-        
-        sales.push(sale);
-        
-        // Обновляем остатки товаров
-        for (let item of saleItems) {
-            const product = products.find(p => p.id === item.product_id);
-            if (product) {
-                product.qty_in_stock = (product.qty_in_stock || 0) - item.qty;
-                
-                if (db && isFirebaseConnected && product.firebaseId) {
-                    try {
-                        await db.collection('products').doc(product.firebaseId).update({
-                            qty_in_stock: product.qty_in_stock
-                        });
-                        console.log(`Product ${product.name} updated, new qty: ${product.qty_in_stock}`);
-                    } catch (e) {
-                        console.error('Firebase update product error:', e);
-                    }
-                }
-            }
-        }
-        
-        // Обновляем клиента
-        const client = clients.find(c => c.id == clientId);
-        if (client) {
-            client.total_purchases = (client.total_purchases || 0) + total_sum;
-            if (paymentStatus === 'debt') {
-                client.total_debt = (client.total_debt || 0) + total_sum;
-            }
-            
-            if (db && isFirebaseConnected && client.firebaseId) {
-                try {
-                    await db.collection('clients').doc(client.firebaseId).update({
-                        total_purchases: client.total_purchases,
-                        total_debt: client.total_debt
-                    });
-                } catch (e) {
-                    console.error('Firebase update client error:', e);
-                }
-            }
-        }
-        
-        // Очищаем корзину
-        saleItems = [];
-        
-        // Перерисовываем все
-        renderAll();
-        showMobileAlert('✅ Продажа сохранена!', 'success');
-        
-        // Переключаемся на историю
-        switchMobileTab('history');
-        
-    } catch (error) {
-        console.error('Error saving sale:', error);
-        showMobileAlert('❌ Ошибка при сохранении', 'error');
-    }
-}
-
-        // ==================== ОПЛАТА ДОЛГА ====================
-        async function processPayment(saleId) {
-            const sale = sales.find(s => s.id === saleId);
-            const amount = parseFloat(document.getElementById('paymentAmount').value);
-            
-            if (!amount || amount <= 0) { showMobileAlert('❌ Введите сумму', 'error'); return; }
-            if (!sale.payment_history) sale.payment_history = [];
-            
-            const paidAmount = sale.payment_history.reduce((sum, p) => sum + (p.amount || 0), 0);
-            const remaining = (sale.total_sum || 0) - paidAmount;
-            if (amount > remaining) { showMobileAlert('❌ Сумма превышает остаток долга', 'error'); return; }
-            
-            sale.payment_history.push({ 
-                id: Date.now(), 
-                amount: amount, 
-                date: new Date().toISOString() 
-            });
-            
-            const newPaid = paidAmount + amount;
-            sale.payment_status = Math.abs(newPaid - (sale.total_sum || 0)) < 0.01 ? 'cash' : 'partial';
-            
-            const client = clients.find(c => c.id == sale.client_id);
-            if (client) {
-                client.total_debt = (client.total_debt || 0) - amount;
-                
-                if (db && isFirebaseConnected && client.firebaseId) {
-                    try {
-                        await db.collection('clients').doc(client.firebaseId).update(client);
-                    } catch (e) {
-                        console.error('Firebase update error:', e);
-                    }
-                }
-            }
-            
-            if (db && isFirebaseConnected && sale.firebaseId) {
-                try {
-                    await db.collection('sales').doc(sale.firebaseId).update(sale);
-                } catch (e) {
-                    console.error('Firebase update error:', e);
-                }
-            }
-            
-            closeDebtModal();
-            renderAll();
-            showMobileAlert(`✅ Оплачено ${amount.toFixed(0)} сом`, 'success');
-        }
-
-        // ==================== ОЧИСТКА ИСТОРИИ ПРОДАЖ ====================
-        async function clearSalesHistory() {
-            if (!confirm('⚠️ Вы уверены, что хотите очистить ВСЮ историю продаж?\nТовары будут возвращены на склад, долги клиентов будут сброшены.\nЭто действие нельзя отменить!')) {
-                return;
-            }
-            
-            // Возвращаем товары на склад
-            for (let sale of sales) {
-                if (sale.items) {
-                    for (let item of sale.items) {
-                        const product = products.find(p => p.id == item.product_id);
-                        if (product) {
-                            product.qty_in_stock = (product.qty_in_stock || 0) + (item.qty_sold || 0);
-                            
-                            if (db && isFirebaseConnected && product.firebaseId) {
-                                try {
-                                    await db.collection('products').doc(product.firebaseId).update(product);
-                                } catch (e) {
-                                    console.error('Firebase update error:', e);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // Обнуляем долги клиентов
-            for (let client of clients) {
-                client.total_purchases = 0;
-                client.total_debt = 0;
-                
-                if (db && isFirebaseConnected && client.firebaseId) {
-                    try {
-                        await db.collection('clients').doc(client.firebaseId).update(client);
-                    } catch (e) {
-                        console.error('Firebase update error:', e);
-                    }
-                }
-            }
-            
-            // Удаляем все продажи из Firebase
-            if (db && isFirebaseConnected) {
-                try {
-                    const salesSnap = await db.collection('sales').get();
-                    salesSnap.forEach(async (doc) => {
-                        await db.collection('sales').doc(doc.id).delete();
-                    });
-                } catch (e) {
-                    console.error('Firebase delete error:', e);
-                }
-            }
-            
-            sales = [];
-            nextSaleId = 1;
-            
-            renderAll();
-            showMobileAlert('✅ История продаж очищена', 'success');
-        }
-
-        // ==================== ОЧИСТКА ВСЕХ ДАННЫХ ====================
-        async function clearAllData() {
-            if (!confirm('⚠️ Вы уверены, что хотите удалить ВСЕ данные?\nЭто действие нельзя отменить!')) return;
-            
-            if (db && isFirebaseConnected) {
-                try {
-                    const collections = ['products', 'clients', 'sales', 'expenses'];
-                    for (const col of collections) {
-                        const snapshot = await db.collection(col).get();
-                        snapshot.forEach(async (doc) => {
-                            await db.collection(col).doc(doc.id).delete();
-                        });
-                    }
-                } catch (e) {
-                    console.error('Firebase clear error:', e);
-                }
-            }
-            
-            products = [];
-            sales = [];
-            clients = [];
-            expenses = [];
-            saleItems = [];
-            
-            nextProductId = 1;
-            nextSaleId = 1;
-            nextClientId = 1;
-            nextExpenseId = 1;
-            
-            renderAll();
-            showMobileAlert('✅ Все данные удалены', 'success');
-        }
-
-        // ==================== ЭКСПОРТ ДАННЫХ ====================
-        function exportData() {
-            const data = { 
-                products, 
-                sales, 
-                clients, 
-                expenses, 
-                date: new Date().toISOString() 
-            };
-            
-            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `shop-backup-${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showMobileAlert('✅ Данные экспортированы', 'success');
-        }
-
-        // ==================== РЕНДЕРИНГ ВСЕГО ====================
-        function renderAll() {
-            renderMobileHome();
-            renderMobileProducts();
-            renderMobileProductsStats();
-            renderMobileClients();
-            renderMobileClientSelect();
-            renderMobileExpenses();
-            renderMobileFullHistory();
-            renderMobileSalesStats();
-            renderMobileRecentOperations();
-        }
-
-        // ==================== ФУНКЦИИ РЕНДЕРИНГА (без изменений) ====================
-        function renderMobileHome() {
-            const totalProducts = products.length;
-            const totalSales = sales.length;
-            const totalRevenue = sales.reduce((sum, s) => sum + (s.total_sum || 0), 0);
-            const totalProfit = sales.reduce((sum, s) => sum + (s.total_profit || 0), 0);
-            const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-            const netProfit = totalProfit - totalExpenses;
-            
-            const totalDebt = sales.reduce((sum, s) => {
-                if (s.payment_status === 'debt' || s.payment_status === 'partial') {
-                    const paid = s.payment_history ? s.payment_history.reduce((p, a) => p + (a.amount || 0), 0) : 0;
-                    return sum + ((s.total_sum || 0) - paid);
-                }
-                return sum;
-            }, 0);
-            
-            document.getElementById('mobileTotalProducts').innerHTML = totalProducts;
-            document.getElementById('mobileTotalSales').innerHTML = totalSales;
-            document.getElementById('mobileTotalRevenue').innerHTML = totalRevenue.toFixed(0);
-            document.getElementById('mobileTotalProfit').innerHTML = totalProfit.toFixed(0);
-            document.getElementById('mobileNetProfit').innerHTML = netProfit.toFixed(0) + ' сом';
-            document.getElementById('mobileTotalExpenses').innerHTML = totalExpenses.toFixed(0) + ' сом';
-            document.getElementById('mobileTotalDebt').innerHTML = totalDebt.toFixed(0) + ' сом';
-            
-            renderMobileRecentOperations();
-            renderExpenseCategories();
-            renderMobileDebts();
-        }
-
-        function renderMobileDebts() {
-            const container = document.getElementById('mobileDebts');
-            if (!container) return;
-            
-            const debtors = [];
-            clients.forEach(client => {
-                const clientDebt = sales
-                    .filter(s => s.client_id == client.id && (s.payment_status === 'debt' || s.payment_status === 'partial'))
-                    .reduce((sum, s) => {
-                        const paid = s.payment_history ? s.payment_history.reduce((p, a) => p + (a.amount || 0), 0) : 0;
-                        return sum + ((s.total_sum || 0) - paid);
-                    }, 0);
-                
-                if (clientDebt > 0) {
-                    debtors.push({ ...client, debt: clientDebt });
-                }
-            });
-            
-            if (debtors.length === 0) {
-                container.innerHTML = '<p style="color: #6c757d; text-align: center; font-size: 11px;">Нет долгов</p>';
-                return;
-            }
-            
-            let debtsHtml = '';
-            debtors.slice(0, 3).forEach(d => {
-                debtsHtml += `
-                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f1f1; font-size: 12px;">
-                        <div>
-                            <strong>${d.name}</strong>
-                            <div style="font-size: 9px;">${d.phone || 'Нет телефона'}</div>
-                        </div>
-                        <div style="color: #dc3545; font-weight: 700;">${d.debt.toFixed(0)} сом</div>
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="no-results">
+                        ${searchQuery ? '🔍 Ничего не найдено' : '📭 Товаров нет'}
                     </div>
                 `;
-            });
-            
-            if (debtors.length > 3) {
-                debtsHtml += `<div style="text-align: center; margin-top: 8px; color: #667eea; font-size: 11px;" onclick="switchMobileTab('history'); setTimeout(() => filterHistory('debt'), 100);">Ещё ${debtors.length - 3} должников →</div>`;
-            }
-            
-            container.innerHTML = debtsHtml;
-        }
-
-        function renderMobileProducts() {
-            const container = document.getElementById('mobileProductsList');
-            if (!container) return;
-            
-            if (products.length === 0) {
-                container.innerHTML = '<div class="mobile-card" style="text-align: center;"><span style="font-size: 32px;">📦</span><p style="font-size: 12px;">Нет товаров</p></div>';
                 return;
             }
-            
-            let html = '';
-            products.forEach(p => {
-                html += `
-                    <div class="mobile-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <h3 style="margin-bottom: 4px; font-size: 15px;">${p.name}</h3>
-                                <div style="display: flex; gap: 10px; font-size: 11px;">
-                                    <span>💰 ${(p.sale_price || 0).toFixed(0)} сом</span>
-                                    <span>📦 ${p.qty_in_stock || 0} шт</span>
-                                    <span style="color: #28a745;">+${(p.profit_per_unit || 0).toFixed(0)} сом</span>
-                                </div>
-                            </div>
-                            <button class="btn-remove" onclick="deleteMobileProduct(${p.id})" style="width: 32px; height: 32px;">🗑️</button>
+
+            container.innerHTML = filtered.map(p => {
+                const imageSrc = p.imageBase64 || 'https://via.placeholder.com/300x220?text=Нет+фото';
+                return `
+                    <div class="product-card">
+                        <img class="product-image" 
+                             src="${imageSrc}" 
+                             alt="${p.name}" 
+                             onclick="openModal('${imageSrc}', '${p.name}')"
+                             onerror="this.src='https://via.placeholder.com/300x220?text=Фото+не+загружено'" />
+                        <div class="product-info">
+                            <div class="product-name">${p.name}</div>
+                            <div class="product-price">${p.price} <span>сом</span></div>
+                            <div class="product-category">${p.category}</div>
+                            ${p.unitsPerBox ? `<div class="product-units">📦 ${p.unitsPerBox} шт/коробка</div>` : ''}
                         </div>
                     </div>
                 `;
-            });
-            
-            container.innerHTML = html;
+            }).join('');
         }
 
-        function renderMobileProductsStats() {
-            const container = document.getElementById('mobileProductsStats');
-            if (!container) return;
-            
-            const totalItems = products.reduce((sum, p) => sum + (p.qty_in_stock || 0), 0);
-            const totalValue = products.reduce((sum, p) => sum + ((p.sale_price || 0) * (p.qty_in_stock || 0)), 0);
-            const totalCost = products.reduce((sum, p) => sum + ((p.purchase_price || 0) * (p.qty_in_stock || 0)), 0);
-            const potentialProfit = totalValue - totalCost;
-            const avgPrice = totalItems > 0 ? totalValue / totalItems : 0;
-            const avgMargin = totalValue > 0 ? (potentialProfit / totalValue * 100) : 0;
-            
-            const lowStock = products.filter(p => (p.qty_in_stock || 0) < 5).length;
-            const outOfStock = products.filter(p => (p.qty_in_stock || 0) === 0).length;
-            
-            const statsHTML = `
-                <div class="totals-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <h3 style="color: white;">📊 Итоги товаров</h3>
-                        <span style="background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 20px; font-size: 10px;">
-                            ${products.length} видов
-                        </span>
-                    </div>
-                    
-                    <div class="totals-grid">
-                        <div class="totals-item">
-                            <div class="totals-label">📦 Всего</div>
-                            <div class="totals-value">${totalItems} шт</div>
-                        </div>
-                        <div class="totals-item">
-                            <div class="totals-label">💰 Стоимость</div>
-                            <div class="totals-value">${totalValue.toFixed(0)}</div>
-                        </div>
-                        <div class="totals-item">
-                            <div class="totals-label">📉 Себест.</div>
-                            <div class="totals-value">${totalCost.toFixed(0)}</div>
-                        </div>
-                        <div class="totals-item">
-                            <div class="totals-label">📈 Прибыль</div>
-                            <div class="totals-value profit-positive">+${potentialProfit.toFixed(0)}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stats-divider"></div>
-                    
-                    <div class="compact-stat-row">
-                        <span>🏷️ Сред. цена:</span>
-                        <span style="font-weight: 600;">${avgPrice.toFixed(0)} сом</span>
-                    </div>
-                    <div class="compact-stat-row">
-                        <span>📊 Маржа:</span>
-                        <span style="font-weight: 600; color: #a5d6a5;">${avgMargin.toFixed(1)}%</span>
-                    </div>
-                    
-                    <div style="display: flex; gap: 8px; margin-top: 8px;">
-                        <div style="flex: 1; background: rgba(255,255,255,0.08); padding: 6px; border-radius: 10px; text-align: center;">
-                            <span style="font-size: 8px; opacity: 0.9;">⚠️ Малый остаток</span>
-                            <div style="font-size: 14px; font-weight: 700; color: #ffc107;">${lowStock}</div>
-                        </div>
-                        <div style="flex: 1; background: rgba(255,255,255,0.08); padding: 6px; border-radius: 10px; text-align: center;">
-                            <span style="font-size: 8px; opacity: 0.9;">❌ Нет в наличии</span>
-                            <div style="font-size: 14px; font-weight: 700; color: #dc3545;">${outOfStock}</div>
-                        </div>
-                    </div>
-                </div>
+        function updateCategories() {
+            const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
+            const container = document.getElementById('categoriesContainer');
+
+            container.innerHTML = `
+                <button class="category-btn active" data-category="all" onclick="filterProducts('all')">Все</button>
+                ${categories.map(c => `
+                    <button class="category-btn" data-category="${c}" onclick="filterProducts('${c}')">${c}</button>
+                `).join('')}
             `;
-            
-            container.innerHTML = statsHTML;
         }
 
-        function renderMobileClients() {
-            const container = document.getElementById('mobileClientsList');
-            if (!container) return;
-            
-            if (clients.length === 0) {
-                container.innerHTML = '<div class="mobile-card" style="text-align: center;"><span style="font-size: 32px;">👥</span><p style="font-size: 12px;">Нет клиентов</p></div>';
-                return;
-            }
-            
-            let html = '';
-            clients.forEach(c => {
-                const clientDebt = sales
-                    .filter(s => s.client_id == c.id && (s.payment_status === 'debt' || s.payment_status === 'partial'))
-                    .reduce((sum, s) => {
-                        const paid = s.payment_history ? s.payment_history.reduce((p, a) => p + (a.amount || 0), 0) : 0;
-                        return sum + ((s.total_sum || 0) - paid);
-                    }, 0);
-                
-                html += `
-                    <div class="client-card">
-                        <div class="client-info">
-                            <div class="client-name">${c.name}</div>
-                            <div style="margin-bottom: 6px; font-size: 11px;">📞 ${c.phone || 'Не указан'}</div>
-                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
-                                <span>🛒 ${(c.total_purchases || 0).toFixed(0)} сом</span>
-                                ${clientDebt > 0 ? `<span class="client-debt">💰 Долг: ${clientDebt.toFixed(0)} сом</span>` : ''}
-                            </div>
-                        </div>
-                        <div class="client-actions">
-                            <button class="btn-remove" onclick="deleteMobileClient(${c.id})" style="width: 32px; height: 32px; background: #dc3545;" title="Удалить клиента">🗑️</button>
-                        </div>
-                    </div>
-                `;
+        function filterProducts(category) {
+            currentCategory = category;
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.category === category);
             });
-            
-            container.innerHTML = html;
+            renderProducts();
         }
 
-        function renderMobileClientSelect() {
-            const select = document.getElementById('mobileSaleClient');
-            if (!select) return;
-            
-            let html = '<option value="">-- Выберите клиента --</option>';
-            clients.forEach(c => {
-                html += `<option value="${c.id}">${c.name}</option>`;
-            });
-            select.innerHTML = html;
-        }
-
-        function renderMobileExpenses() {
-            const container = document.getElementById('mobileExpensesFullList');
-            if (!container) return;
-            
-            if (expenses.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 15px; font-size: 12px;">Нет расходов</p>';
-            } else {
-                let html = '';
-                [...expenses].sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(exp => {
-                    html += `
-                        <div class="expense-card">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-                                        <span class="badge-category">${exp.category}</span>
-                                        <span style="font-size: 9px; color: #6c757d;">${formatDate(exp.date)}</span>
-                                    </div>
-                                    <strong style="font-size: 13px;">${exp.name}</strong>
-                                    ${exp.description ? `<div style="font-size: 10px; color: #6c757d; margin-top: 4px;">${exp.description}</div>` : ''}
-                                </div>
-                                <div style="text-align: right;">
-                                    <div style="font-size: 15px; font-weight: 700; color: #dc3545;">-${exp.amount.toFixed(0)} сом</div>
-                                    <button class="btn-remove" onclick="deleteMobileExpense(${exp.id})" style="width: 28px; height: 28px; margin-top: 4px;">🗑️</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                container.innerHTML = html;
-            }
-            
-            const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            const monthlyExpenses = expenses
-                .filter(e => new Date(e.date) >= thirtyDaysAgo)
-                .reduce((sum, e) => sum + (e.amount || 0), 0);
-            
-            document.getElementById('mobileExpensesTotal').innerHTML = totalExpenses.toFixed(0) + ' сом';
-            document.getElementById('mobileExpensesMonth').innerHTML = monthlyExpenses.toFixed(0) + ' сом';
-            document.getElementById('mobileTotalExpenses').innerHTML = totalExpenses.toFixed(0) + ' сом';
-        }
-
-        function renderExpenseCategories() {
-            const container = document.getElementById('mobileExpenseCategories');
-            if (!container) return;
-            
-            const categories = {};
-            expenses.forEach(exp => {
-                const cat = exp.category || 'Прочее';
-                categories[cat] = (categories[cat] || 0) + (exp.amount || 0);
-            });
-            
-            const sorted = Object.entries(categories)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 4);
-            
-            if (sorted.length === 0) {
-                container.innerHTML = '<p style="color: #6c757d; text-align: center; padding: 8px; font-size: 11px;">Нет расходов</p>';
-                return;
-            }
-            
-            let html = '';
-            sorted.forEach(([cat, amount]) => {
-                let icon = '📌';
-                if (cat.includes('Аренда')) icon = '🏢';
-                else if (cat.includes('Зарплата')) icon = '👥';
-                else if (cat.includes('Реклама')) icon = '📢';
-                else if (cat.includes('Транспорт')) icon = '🚚';
-                else if (cat.includes('Коммунальные')) icon = '💡';
-                else if (cat.includes('Оборудование')) icon = '🖥️';
-                else if (cat.includes('Налоги')) icon = '📄';
-                
-                html += `
-                    <div class="category-item">
-                        <span class="category-icon">${icon}</span>
-                        <span class="category-name">${cat.length > 10 ? cat.substring(0,8)+'…' : cat}</span>
-                        <span class="category-amount">${amount.toFixed(0)} сом</span>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        function renderMobileFullHistory() {
-            const container = document.getElementById('mobileFullHistoryList');
-            if (!container) return;
-            
-            let filteredSales = [...sales];
-            
-            if (currentHistoryFilter !== 'all') {
-                filteredSales = filteredSales.filter(s => s.payment_status === currentHistoryFilter);
-            }
-            
-            filteredSales.sort((a, b) => new Date(b.date_time) - new Date(a.date_time));
-            
-            if (filteredSales.length === 0) {
-                container.innerHTML = '<p style="color: #6c757d; text-align: center; padding: 15px; font-size: 12px;">Нет продаж</p>';
-                return;
-            }
-            
-            let html = '';
-            filteredSales.forEach(sale => {
-                const client = findClientById(sale.client_id);
-                const clientName = client?.name || '👤 Клиент удален';
-                
-                let statusBadge = '';
-                let statusColor = '';
-                
-                if (sale.payment_status === 'cash') {
-                    statusBadge = '<span class="badge-cash" style="padding: 2px 6px; font-size: 9px;">💰 Оплачено</span>';
-                    statusColor = '#28a745';
-                } else if (sale.payment_status === 'debt') {
-                    statusBadge = '<span class="badge-debt" style="padding: 2px 6px; font-size: 9px;">📝 В долг</span>';
-                    statusColor = '#dc3545';
-                } else if (sale.payment_status === 'partial') {
-                    statusBadge = '<span class="badge-partial" style="padding: 2px 6px; font-size: 9px;">🔄 Частично</span>';
-                    statusColor = '#ffc107';
-                }
-                
-                const paidAmount = sale.payment_history ? sale.payment_history.reduce((sum, p) => sum + (p.amount || 0), 0) : (sale.payment_status === 'cash' ? sale.total_sum : 0);
-                const remaining = (sale.total_sum || 0) - paidAmount;
-                
-                html += `
-                    <div class="history-item">
-                        <div class="history-left">
-                            <div class="history-icon" style="background: ${statusColor}20; color: ${statusColor};">💰</div>
-                            <div class="history-details">
-                                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                                    <span class="history-title">Продажа #${sale.id}</span>
-                                    ${statusBadge}
-                                </div>
-                                <span class="history-subtitle">${clientName} · ${formatDate(sale.date_time)}</span>
-                                <span style="font-size: 9px; color: #6c757d;">
-                                    ${sale.items ? sale.items.map(i => `${i.product_name || 'Товар'} × ${i.qty_sold || 0}`).join(', ') : 'Нет товаров'}
-                                </span>
-                                ${remaining > 0 ? `<span style="color: #dc3545; font-size: 9px; margin-top: 3px;">Остаток: ${remaining.toFixed(0)} сом</span>` : ''}
-                            </div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div class="history-amount amount-positive">
-                                +${(sale.total_sum || 0).toFixed(0)} сом
-                            </div>
-                            ${remaining > 0 ? `
-                                <button class="btn-remove" onclick="openDebtModal(${sale.id})" style="width: 28px; height: 28px; margin-top: 4px; background: #28a745;">💰</button>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        function renderMobileSalesStats() {
-            const container = document.getElementById('mobileSalesStats');
-            if (!container) return;
-            
-            let filteredSales = [...sales];
-            if (currentHistoryFilter !== 'all') {
-                filteredSales = filteredSales.filter(s => s.payment_status === currentHistoryFilter);
-            }
-            
-            const totalSales = filteredSales.length;
-            const totalRevenue = filteredSales.reduce((sum, s) => sum + (s.total_sum || 0), 0);
-            const totalProfit = filteredSales.reduce((sum, s) => sum + (s.total_profit || 0), 0);
-            
-            const totalDebt = filteredSales.reduce((sum, s) => {
-                if (s.payment_status === 'debt' || s.payment_status === 'partial') {
-                    const paid = s.payment_history ? s.payment_history.reduce((p, a) => p + (a.amount || 0), 0) : 0;
-                    return sum + ((s.total_sum || 0) - paid);
-                }
-                return sum;
-            }, 0);
-            
-            const today = new Date().toDateString();
-            const todaySales = sales.filter(s => {
-                if (!s.date_time) return false;
-                try {
-                    return new Date(s.date_time).toDateString() === today;
-                } catch (e) {
-                    return false;
-                }
-            });
-            const todayRevenue = todaySales.reduce((sum, s) => sum + (s.total_sum || 0), 0);
-            const todayProfit = todaySales.reduce((sum, s) => sum + (s.total_profit || 0), 0);
-            const todayCount = todaySales.length;
-            
-            const cashSales = sales.filter(s => s.payment_status === 'cash').length;
-            const debtSales = sales.filter(s => s.payment_status === 'debt' || s.payment_status === 'partial').length;
-            
-            const statsHTML = `
-                <div class="totals-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); margin-top: 5px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <h3 style="color: white;">📊 Итоги продаж</h3>
-                        <span style="background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 20px; font-size: 10px;">
-                            ${totalSales} шт
-                        </span>
-                    </div>
-                    
-                    <div class="totals-grid">
-                        <div class="totals-item">
-                            <div class="totals-label">💰 Выручка</div>
-                            <div class="totals-value">${totalRevenue.toFixed(0)}</div>
-                        </div>
-                        <div class="totals-item">
-                            <div class="totals-label">📊 Прибыль</div>
-                            <div class="totals-value profit-positive">+${totalProfit.toFixed(0)}</div>
-                        </div>
-                        <div class="totals-item">
-                            <div class="totals-label">📝 Долги</div>
-                            <div class="totals-value" style="color: #ffc107;">${totalDebt.toFixed(0)}</div>
-                        </div>
-                        <div class="totals-item">
-                            <div class="totals-label">💰 / 📝</div>
-                            <div class="totals-value-small">${cashSales} / ${debtSales}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stats-divider"></div>
-                    
-                    <div class="today-stats">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <span style="font-size: 11px; font-weight: 600;">📅 Сегодня</span>
-                            <span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 20px; font-size: 9px;">
-                                ${todayCount} шт
-                            </span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 11px;">
-                            <span>Выручка:</span>
-                            <span style="font-weight: 600;">${todayRevenue.toFixed(0)} сом</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 11px;">
-                            <span>Прибыль:</span>
-                            <span style="font-weight: 600; color: #a5d6a5;">+${todayProfit.toFixed(0)} сом</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            container.innerHTML = statsHTML;
-        }
-
-        function renderMobileRecentOperations() {
-            const container = document.getElementById('mobileRecentOperations');
-            if (!container) return;
-            
-            const recentSales = [...sales]
-                .sort((a,b) => new Date(b.date_time) - new Date(a.date_time))
-                .slice(0, 5);
-            
-            if (recentSales.length === 0) {
-                container.innerHTML = '<p style="color: #6c757d; text-align: center; padding: 8px; font-size: 11px;">Нет продаж</p>';
-                return;
-            }
-            
-            let html = '';
-            recentSales.forEach(sale => {
-                const client = findClientById(sale.client_id);
-                const clientName = client?.name || '👤 Клиент удален';
-                let statusIcon = '';
-                if (sale.payment_status === 'cash') statusIcon = '💰';
-                else if (sale.payment_status === 'debt') statusIcon = '📝';
-                else if (sale.payment_status === 'partial') statusIcon = '🔄';
-                
-                html += `
-                    <div class="history-item">
-                        <div class="history-left">
-                            <div class="history-icon" style="background: #28a74520; color: #28a745;">💰</div>
-                            <div class="history-details">
-                                <span class="history-title">Продажа #${sale.id}</span>
-                                <span class="history-subtitle">${clientName} · ${formatDate(sale.date_time)} ${statusIcon}</span>
-                            </div>
-                        </div>
-                        <div class="history-amount amount-positive">
-                            +${(sale.total_sum || 0).toFixed(0)} сом
-                        </div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        function addMobileSaleItem() {
-            if (products.length === 0) {
-                showMobileAlert('❌ Сначала добавьте товары', 'error');
-                return;
-            }
-            saleItems.push({ product_id: products[0].id, qty: 1 });
-            renderMobileSaleItems();
-        }
-
-        function removeMobileSaleItem(index) {
-            saleItems.splice(index, 1);
-            renderMobileSaleItems();
-        }
-
-        function renderMobileSaleItems() {
-            const container = document.getElementById('mobileSaleItems');
-            
-            if (saleItems.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #6c757d; font-size: 12px;">Добавьте товары в продажу</p>';
-                calculateMobileTotal();
-                return;
-            }
-            
-            let html = '';
-            saleItems.forEach((item, i) => {
-                const product = products.find(p => p.id === item.product_id);
-                html += `
-                    <div class="sale-item">
-                        <div class="sale-item-row">
-                            <select class="sale-item-select" onchange="updateSaleItemProduct(${i}, this.value)">
-                                ${products.map(p => `<option value="${p.id}" ${p.id === item.product_id ? 'selected' : ''}>${p.name} (${p.qty_in_stock || 0} шт)</option>`).join('')}
-                            </select>
-                            <input type="number" class="sale-item-qty" value="${item.qty}" min="1" max="${product?.qty_in_stock || 1}" onchange="updateSaleItemQty(${i}, this.value)">
-                            <button class="btn-remove" onclick="removeMobileSaleItem(${i})">✕</button>
-                        </div>
-                        <div style="text-align: right; margin-top: 6px;">
-                            <strong style="font-size: 12px;">${((product?.sale_price || 0) * item.qty).toFixed(0)} сом</strong>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-            calculateMobileTotal();
-        }
-
-        function updateSaleItemProduct(index, productId) {
-            saleItems[index].product_id = parseInt(productId);
-            renderMobileSaleItems();
-        }
-
-        function updateSaleItemQty(index, qty) {
-            saleItems[index].qty = parseInt(qty) || 1;
-            renderMobileSaleItems();
-        }
-
-        function calculateMobileTotal() {
-            let total = 0;
-            saleItems.forEach(item => {
-                const product = products.find(p => p.id === item.product_id);
-                if (product) total += (product.sale_price || 0) * item.qty;
-            });
-            document.getElementById('mobileTotalAmount').innerHTML = total.toFixed(0) + ' сом';
-        }
-
-        function filterHistory(filter, element) {
-            currentHistoryFilter = filter;
-            
-            document.querySelectorAll('.filter-chip').forEach(chip => {
-                chip.classList.remove('active');
-            });
-            if (element) element.classList.add('active');
-            
-            renderMobileFullHistory();
-            renderMobileSalesStats();
-        }
-
-        function openDebtModal(saleId) {
-            const sale = sales.find(s => s.id === saleId);
-            const client = findClientById(sale.client_id);
-            const clientName = client?.name || 'Клиент удален';
-            
-            if (!sale.payment_history) sale.payment_history = [];
-            const paidAmount = sale.payment_history.reduce((sum, p) => sum + (p.amount || 0), 0);
-            const remaining = (sale.total_sum || 0) - paidAmount;
-            
-            const content = `
-                <div class="payment-info">
-                    <div class="info-row"><span>Клиент:</span><strong>${clientName}</strong></div>
-                    <div class="info-row"><span>Сумма долга:</span><strong>${(sale.total_sum || 0).toFixed(0)} сом</strong></div>
-                    <div class="info-row"><span>Уже оплачено:</span><span style="color: #28a745;">${paidAmount.toFixed(0)} сом</span></div>
-                    <div class="info-row"><span>Остаток:</span><span class="remaining-amount">${remaining.toFixed(0)} сом</span></div>
-                    <div class="info-row"><span>Дата продажи:</span><span style="color: #6c757d;">${formatDate(sale.date_time)}</span></div>
-                </div>
-                <input type="number" class="mobile-input" id="paymentAmount" placeholder="Сумма оплаты" value="${remaining.toFixed(0)}" max="${remaining}">
-                <div style="display: flex; gap: 8px;">
-                    <button class="mobile-btn btn-success" style="flex: 2;" onclick="processPayment(${saleId})">✅ Оплатить</button>
-                    <button class="mobile-btn" style="flex: 1; background: #6c757d; color: white;" onclick="closeDebtModal()">✕</button>
-                </div>
-            `;
-            
-            document.getElementById('debtModalContent').innerHTML = content;
-            document.getElementById('debtModal').style.display = 'block';
-            document.getElementById('debtModalOverlay').classList.add('active');
-        }
-
-        function closeDebtModal() {
-            document.getElementById('debtModal').style.display = 'none';
-            document.getElementById('debtModalOverlay').classList.remove('active');
-        }
-
-        function quickSale() {
-            switchMobileTab('sales');
-            if (products.length > 0) addMobileSaleItem();
-        }
-
-        function showDebtors() {
-            switchMobileTab('home');
-            setTimeout(() => {
-                const debtsEl = document.getElementById('mobileDebts');
-                if (debtsEl) debtsEl.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
-        }
-
-        // ==================== НАВИГАЦИЯ ====================
-        function switchMobileTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            
-            if (tab === 'home') {
-                document.getElementById('homeTab').classList.add('active');
-                document.querySelectorAll('.nav-item')[0].classList.add('active');
-                renderMobileHome();
-            } else if (tab === 'products') {
-                document.getElementById('productsTab').classList.add('active');
-                document.querySelectorAll('.nav-item')[1].classList.add('active');
-                renderMobileProducts();
-                renderMobileProductsStats();
-            } else if (tab === 'clients') {
-                document.getElementById('clientsTab').classList.add('active');
-                document.querySelectorAll('.nav-item')[2].classList.add('active');
-                renderMobileClients();
-            } else if (tab === 'sales') {
-                document.getElementById('salesTab').classList.add('active');
-                document.querySelectorAll('.nav-item')[3].classList.add('active');
-                renderMobileClientSelect();
-                renderMobileSaleItems();
-            } else if (tab === 'expenses') {
-                document.getElementById('expensesTab').classList.add('active');
-                document.querySelectorAll('.nav-item')[4].classList.add('active');
-                renderMobileExpenses();
-            } else if (tab === 'history') {
-                document.getElementById('historyTab').classList.add('active');
-                document.querySelectorAll('.nav-item')[5].classList.add('active');
-                renderMobileFullHistory();
-                renderMobileSalesStats();
-            } else if (tab === 'settings') {
-                document.getElementById('settingsTab').classList.add('active');
-                document.querySelectorAll('.nav-item')[6].classList.add('active');
-            }
-        }
-
-        // ==================== УВЕДОМЛЕНИЯ ====================
-        function showMobileAlert(message, type) {
-            const alertDiv = document.createElement('div');
-            alertDiv.style.cssText = `
-                position: fixed;
-                bottom: 70px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: ${type === 'success' ? '#28a745' : '#dc3545'};
-                color: white;
-                padding: 10px 16px;
-                border-radius: 30px;
-                font-weight: 600;
-                font-size: 13px;
-                z-index: 1000;
-                box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-                animation: slideUp 0.3s;
-                max-width: 90%;
-                text-align: center;
-            `;
-            alertDiv.textContent = message;
-            document.body.appendChild(alertDiv);
-            setTimeout(() => alertDiv.remove(), 3000);
-        }
-
-        // ==================== ФОРМАТИРОВАНИЕ ДАТЫ ====================
-        function formatDate(dateString) {
-            if (!dateString) return 'Дата не указана';
-            try {
-                const date = new Date(dateString);
-                if (isNaN(date.getTime())) return dateString;
-                return date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'});
-            } catch (e) {
-                return dateString;
-            }
-        }
-
-        // ==================== ОБНОВЛЕНИЕ ВРЕМЕНИ ====================
-        function updateTime() {
-            const timeEl = document.getElementById('currentTime');
-            if (timeEl) timeEl.textContent = new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
-        }
-
-        // ==================== ИНИЦИАЛИЗАЦИЯ ====================
-        window.onload = async function() {
-            await initFirebase();
-            
-            renderAll();
-            
-            updateTime();
-            setInterval(updateTime, 1000);
-            
-            window.addEventListener('online', function() {
-                document.getElementById('offlineIndicator').classList.remove('show');
-                isFirebaseConnected = true;
-                document.getElementById('firebaseStatus').innerHTML = '✅ Онлайн';
-                loadAllData();
-            });
-            
-            window.addEventListener('offline', function() {
-                document.getElementById('offlineIndicator').classList.add('show');
-                isFirebaseConnected = false;
-                document.getElementById('firebaseStatus').innerHTML = '❌ Оффлайн';
-            });
-        };
+        loadProducts();
     </script>
+
 </body>
 </html>
